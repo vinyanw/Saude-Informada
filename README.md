@@ -5,9 +5,5 @@ O projeto está desenvolvido em três etapas através do material "Basic Guideli
 - Fase de planejamento
 - Fase de projeto
 - Fase de documentação
-Essa estrutura é flexível e pode ser adaptada a diferentes tipos de pesquisa (qualitativa, quantitativa ou mista), tornando-a mais válida e de uso frequente em contextos acadêmicos. Ela promove a rigorosidade ao integrar análise e recomendações na fase final, o que ajuda a evitar erros comuns e a gerar impactos maiores.
 
 Tecnologias usadas serão a prototipagem de design através do Figma, para construir protótipos de produtos bastante utilizada na área de User Experience (UX).
-.
-.
-.
