@@ -7,3 +7,4 @@ O projeto está desenvolvido em três etapas através do material "Basic Guideli
 - Fase de documentação
 
 Tecnologias usadas serão a prototipagem de design através do Figma, para construir protótipos de produtos bastante utilizada na área de User Experience (UX).
+    

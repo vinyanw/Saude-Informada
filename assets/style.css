@@ -1,0 +1,71 @@
+* {
+    box-sizing: border-box;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+    border-radius: 0 !important;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #f0fdf4;
+    color: #1b4332;
+}
+
+/* Tabs */
+.dash-tabs .tab--selected {
+    border-top: 3px solid #40916c !important;
+    border-radius: 0 !important;
+}
+
+.dash-tab {
+    border-radius: 0 !important;
+}
+
+/* Dropdown */
+.Select-control {
+    border-radius: 0 !important;
+    border: 2px solid #95d5b2 !important;
+}
+
+.Select-menu-outer {
+    border-radius: 0 !important;
+}
+
+.Select-option.is-focused {
+    background-color: #d8f3dc !important;
+}
+
+.Select-option.is-selected {
+    background-color: #40916c !important;
+    color: white !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #d8f3dc;
+}
+::-webkit-scrollbar-thumb {
+    background: #52b788;
+}
+
+/* Tables */
+table {
+    border-collapse: collapse;
+}
+
+th, td {
+    border-radius: 0 !important;
+}
+
+/* Plotly */
+.js-plotly-plot .plotly .modebar {
+    border-radius: 0 !important;
+}
+
+.js-plotly-plot .plotly .modebar-btn path {
+    fill: #2d6a4f;
+}
