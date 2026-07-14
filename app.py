@@ -507,7 +507,7 @@ tab_landing = html.Div([
             }),
             html.Div([
                 _ack("IFMA", "Instituto Federal do Maranhão",
-                     "Campus Caxias — suporte institucional e infraestrutura de pesquisa",
+                     "Campus Caxias pelo suporte institucional e infraestrutura de pesquisa",
                      C['primary']),
                 _ack("PRPGI", "Pró-Reitoria de Pesquisa, Pós-Graduação e Inovação",
                      "Pelo apoio ao desenvolvimento da pesquisa científica no IFMA",
@@ -677,8 +677,8 @@ tab_grafos = html.Div([
             "Graph Colouring: A Visual Tour",
             "Rhyd Lewis", "2026", "arXiv",
             f"Arestas conectam unidades a menos de {THRESHOLD_KM}km (distância haversine). "
-            "Coloração cromática (greedy, largest_first) destaca conflitos de proximidade — "
-            "serviços do mesmo tipo muito próximos — e complementaridades entre categorias distintas. "
+            "Coloração cromática (greedy, largest_first) destaca conflitos de proximidade, "
+            "serviços do mesmo tipo muito próximos e complementaridades entre categorias distintas. "
             "Posições dos nós correspondem às coordenadas geográficas reais.",
             fig_graph_coloring(),
         ),
@@ -696,7 +696,7 @@ tab_grafos = html.Div([
             "Voronoi Diagrams em Facility Location",
             "Aurenhammer, Klein & Lee; Okabe et al.", "2000/2013", "Geometria Computacional",
             "Tesselação de Voronoi sobre as coordenadas das unidades da área urbana central de Caxias. "
-            "Cada polígono delimita a região de influência natural de uma unidade — "
+            "Cada polígono delimita a região de influência natural de uma unidade, "
             "onde ela é o serviço geograficamente mais próximo. "
             "Facilita identificação de gaps de cobertura, sobreposição e redundâncias.",
             fig_voronoi(),
@@ -719,7 +719,7 @@ tab_grafos = html.Div([
 # ──────────────────────────────────────────────────────────
 # LAYOUT PRINCIPAL
 # ──────────────────────────────────────────────────────────
-app = dash.Dash(__name__, title="Saúde Informada — Caxias-MA",
+app = dash.Dash(__name__, title="Saúde Informada (Caxias-MA)",
                 suppress_callback_exceptions=True)
 server = app.server
 
