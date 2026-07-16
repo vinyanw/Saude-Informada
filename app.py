@@ -191,7 +191,7 @@ POLI_NOME = 'AMBULATORIO ESPECIALIZADO DE CAXIAS'
 POLI_CNES = '2453908'
 
 POLI_INFO = {
-    'endereco': 'Rua Quininha Pires, 105 — Centro, Caxias-MA · CEP 65602-720 · Tel. (99) 98521-3410',
+    'endereco': 'Rua Quininha Pires, 105 - Centro, Caxias-MA · CEP 65602-720 · Tel. (99) 98521-3410',
     'tipo': 'Policlínica · Administração Pública (Prefeitura Municipal de Caxias) · Gestão Municipal · Unidade Auxiliar de Ensino',
     'servicos': ['Oftalmologia (diagnóstico, trat. clínico e cirúrgico)',
                  'Endocrinologia e Metabologia',
@@ -413,11 +413,11 @@ def make_map(cat_filter='Todos', tipo_filter='Todos', busca=''):
     poli_row = df[df['Nome'] == POLI_NOME]
     if not poli_row.empty:
         lat, lon = poli_row.iloc[0]['coord']
-        star_group = folium.FeatureGroup(name='★ Estudo de Caso — Policlínica', show=True)
+        star_group = folium.FeatureGroup(name='★ Estudo de Caso da Policlínica', show=True)
         folium.Marker(
             [lat, lon],
             icon=folium.Icon(color='darkgreen', icon='star', prefix='fa'),
-            tooltip=f"★ {POLI_NOME} (CNES {POLI_CNES}) — Estudo de Caso",
+            tooltip=f"★ {POLI_NOME} (CNES {POLI_CNES}) Estudo de Caso",
             popup=folium.Popup(
                 f"<div style='font-family:Inter,Helvetica,Arial,sans-serif;min-width:220px'>"
                 f"<b style='color:#1b4332'>★ {POLI_NOME}</b><br>"
@@ -425,7 +425,7 @@ def make_map(cat_filter='Todos', tipo_filter='Todos', busca=''):
                 f"<span style='color:#2d6a4f'>Tipo:</span> Policlínica · Média Complexidade<br>"
                 f"<span style='color:#2d6a4f'>Horas médicas:</span> {TOTAL_H_MEDICAS}h/sem · "
                 f"{N_ESPECIALIDADES} especialidades<br>"
-                f"<i>Ver aba \"Estudo de Caso — Policlínica\"</i></div>",
+                f"<i>Ver aba \"Estudo de Caso da Policlínica\"</i></div>",
                 max_width=300),
         ).add_to(star_group)
         star_group.add_to(m)
@@ -487,14 +487,14 @@ def fig_graph_coloring(Gr=None, col=None, thr=None, com_pesos=True):
                         line=dict(width=2, color='#1b4332')),
             text=['★ Estudo de Caso'], textposition='top center',
             textfont=dict(size=10, color=C['primary']),
-            hovertemplate=(f"<b>★ {POLI_NOME}</b><br>CNES {POLI_CNES} — Estudo de Caso<br>"
+            hovertemplate=(f"<b>★ {POLI_NOME}</b><br>CNES {POLI_CNES} (Estudo de Caso)<br>"
                            f"Grau no grafo: {Gr.degree(POLI_NOME)} vizinhos ≤ {thr}km"
                            "<extra></extra>"),
             showlegend=False,
         ))
     peso_txt = ' · arestas ponderadas por tipo (emergência ×2)' if com_pesos else ''
     fig.update_layout(
-        title=dict(text=f'Coloração por Proximidade Geográfica (threshold {thr}km) — nº cromático: {chi}',
+        title=dict(text=f'Coloração por Proximidade Geográfica (threshold {thr}km) - nº cromático: {chi}',
                    font=dict(size=13, color=C['primary'])),
         hovermode='closest', showlegend=False,
         paper_bgcolor='white', plot_bgcolor='#f8fffe',
@@ -530,7 +530,7 @@ def fig_forceatlas2(Gr=None):
         seen.add(cat)
     fig = go.Figure(traces)
     fig.update_layout(
-        title=dict(text='Rede de Serviços — Layout ForceAtlas2/Spring por Categoria',
+        title=dict(text='Rede de Serviços - Layout ForceAtlas2/Spring por Categoria',
                    font=dict(size=13, color=C['primary'])),
         hovermode='closest', paper_bgcolor='white', plot_bgcolor='#f8fffe',
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
@@ -587,7 +587,7 @@ def fig_voronoi():
         seen.add(cat)
 
     fig.update_layout(
-        title=dict(text='Diagrama de Voronoi — Regiões de Influência por Unidade (área urbana)',
+        title=dict(text='Diagrama de Voronoi - Regiões de Influência por Unidade (área urbana)',
                    font=dict(size=13, color=C['primary'])),
         xaxis=dict(title='Longitude', gridcolor='#e8f5e9'),
         yaxis=dict(title='Latitude', gridcolor='#e8f5e9', scaleanchor='x', scaleratio=1),
@@ -623,7 +623,7 @@ def fig_scheduling(Gr=None, col=None):
     fig = go.Figure(traces)
     fig.update_layout(
         title=dict(
-            text=f'Coloração para Alocação de Serviços — {chi} grupos sem conflito',
+            text=f'Coloração para Alocação de Serviços - {chi} grupos sem conflito',
             font=dict(size=13, color=C['primary'])),
         hovermode='closest', paper_bgcolor='white', plot_bgcolor='#f8fffe',
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
@@ -714,7 +714,7 @@ def fig_centralidade(Gr=None):
     ])
     fig.update_layout(
         barmode='group',
-        title=dict(text='Centralidade — Hubs Críticos da Rede (top 12 por betweenness)',
+        title=dict(text='Centralidade - Hubs Críticos da Rede (top 12 por betweenness)',
                    font=dict(size=13, color=C['primary'])),
         xaxis=dict(title='Centralidade (ponderada pela distância)', gridcolor='#e8f5e9'),
         yaxis=dict(tickfont=dict(size=9)),
@@ -788,7 +788,7 @@ def fig_pop_voronoi():
     cores = [C['danger'] if v > 8000 else C['warn'] if v > 4000 else C['secondary']
              for v in vals]
     hover = [f"<b>{n}</b><br>Hab. na área de influência: {atribuida[n]:,}".replace(',', '.') +
-             f"<br>Bairros: {', '.join(bairros_atendidos[n]) or '—'}"
+             f"<br>Bairros: {', '.join(bairros_atendidos[n]) or '-'}"
              for n in ordem]
 
     fig = go.Figure(go.Bar(
@@ -799,7 +799,7 @@ def fig_pop_voronoi():
                   annotation_text='Limite recomendado por equipe (Portaria 2.436/2017: 4.000 hab)',
                   annotation_font=dict(size=10, color=C['txt2']))
     fig.update_layout(
-        title=dict(text=f'Habitantes por UBS — Área de Influência Voronoi '
+        title=dict(text=f'Habitantes por UBS (Área de Influência Voronoi) '
                         f'(população {IBGE.get("ano_estimativa", "2022")} · {IBGE["fonte"]})',
                    font=dict(size=13, color=C['primary'])),
         xaxis=dict(tickangle=-45, gridcolor='#e8f5e9', tickfont=dict(size=9)),
@@ -876,7 +876,7 @@ def fig_poli_ego():
         ))
     fig = go.Figure(traces)
     fig.update_layout(
-        title=dict(text=f'Vizinhança no Grafo de Proximidade — '
+        title=dict(text=f'Vizinhança no Grafo de Proximidade - '
                         f'{G.degree(POLI_NOME)} unidades a ≤ {THRESHOLD_KM}km',
                    font=dict(size=13, color=C['primary'])),
         hovermode='closest', paper_bgcolor='white', plot_bgcolor='#f8fffe',
@@ -899,21 +899,21 @@ def poli_recomendacoes():
         recs.append(('danger' if r['ch'] <= 10 else 'warn',
                      f"Baixa oferta em {e}",
                      f"Apenas {int(r['ch'])}h/semana ({int(r['n'])} médico(s)). "
-                     f"Considerar ampliação de carga horária ou contratação — oferta "
+                     f"Considerar ampliação de carga horária ou contratação - oferta "
                      f"inferior a 20h/sem limita o acesso via regulação."))
 
     unicos = esp[esp['n'] == 1]
     nomes_unicos = ', '.join(unicos.index)
     if len(unicos):
         recs.append(('warn', "Especialidades com profissional único",
-                     f"{nomes_unicos}: a oferta depende de um único médico — férias ou "
+                     f"{nomes_unicos}: a oferta depende de um único médico - férias ou "
                      f"desligamento interrompem o serviço. Avaliar redundância mínima."))
 
     ch_hosp = df_poli[df_poli['CH_Hosp'] > 0]
     for _, r in ch_hosp.iterrows():
         recs.append(('warn', "Carga horária hospitalar em unidade ambulatorial",
                      f"{r['Nome']} ({r['Funcao']}) tem {r['CH_Hosp']}h registradas como "
-                     f"hospitalares em estabelecimento exclusivamente ambulatorial — "
+                     f"hospitalares em estabelecimento exclusivamente ambulatorial - "
                      f"verificar consistência do cadastro no CNES."))
 
     coop = df_med[df_med['Vinculo'] == _COOP]
@@ -933,7 +933,7 @@ def poli_recomendacoes():
     recs.append(('info', "Funcionamento 24h vs. oferta médica concentrada",
                  f"A unidade registra atendimento contínuo 24h/dia (168h/sem), mas a oferta "
                  f"média é de apenas {media_esp:.0f}h semanais por especialidade "
-                 f"({TOTAL_H_MEDICAS}h ÷ {N_ESPECIALIDADES} especialidades) — divulgar a "
+                 f"({TOTAL_H_MEDICAS}h ÷ {N_ESPECIALIDADES} especialidades) - divulgar a "
                  f"grade de horários por especialidade evita demanda frustrada fora da escala."))
     return recs
 
@@ -1207,7 +1207,7 @@ tab_mapa = html.Div([
              f"da população a ≤ {RAIO_ACESSO_KM:g}km de uma UBS (acessibilidade)",
              C['primary']),
         _kpi(f"{_KPI_BASE['hab_ubs']:,.0f}".replace(',', '.'),
-             "habitantes por UBS (média — área de influência Voronoi)",
+             "habitantes por UBS (média - área de influência Voronoi)",
              C['secondary']),
         _kpi(_KPI_BASE['sobrecarga'],
              "UBS sobrecarregadas (> 4.000 hab na área de influência)",
@@ -1318,7 +1318,7 @@ tab_mapa = html.Div([
         ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center',
                   'borderBottom': f"1px solid {C['line']}", 'paddingBottom': '10px', 'borderLeft': f"3px solid {C['accent']}", 'paddingLeft': '12px', 'letterSpacing': '-0.01em'}),
         html.P(
-            f"População calibrada por dados oficiais do IBGE — Censo 2022: "
+            f"População calibrada por dados oficiais do IBGE - Censo 2022: "
             f"{IBGE.get('censo_2022', POP_CENSO_2022_FALLBACK):,} hab · "
             f"Estimativa {IBGE.get('ano_estimativa', '—')}: {POP_OFICIAL:,} hab "
             f"({IBGE['fonte']}). Demanda assistencial: {DEMANDA_FONTE}.".replace(',', '.'),
@@ -1329,7 +1329,7 @@ tab_mapa = html.Div([
 
     # Voronoi coverage
     html.Div([
-        html.H3("Validação de Cobertura — População por Área de Influência (Voronoi)", style={
+        html.H3("Validação de Cobertura - População por Área de Influência (Voronoi)", style={
             'color': C['primary'], 'marginTop': '0',
             'borderBottom': f"1px solid {C['line']}", 'paddingBottom': '10px', 'borderLeft': f"3px solid {C['accent']}", 'paddingLeft': '12px', 'letterSpacing': '-0.01em',
         }),
@@ -1355,7 +1355,7 @@ def method_section(title, authors, year, source, description, figure=None, graph
     return html.Div([
         html.Div([
             html.H3(title, style={'color': C['primary'], 'margin': '0 0 4px'}),
-            html.P(f"{authors} — {source}, {year}", style={
+            html.P(f"{authors} - {source}, {year}", style={
                 'color': C['txt2'], 'fontSize': '0.86rem', 'fontStyle': 'italic', 'margin': '0 0 12px',
             }),
             html.P(description, style={
@@ -1376,7 +1376,7 @@ tab_grafos = html.Div([
         html.H2("Visualização de Grafos", style={'color': C['primary'], 'margin': '0 0 6px'}),
         html.P(
             "Metodologias de abstração e visualização aplicadas à rede de serviços de Caxias-MA. "
-            "Ajuste o raio de proximidade e a ponderação das arestas — os grafos são recalculados "
+            "Ajuste o raio de proximidade e a ponderação das arestas - os grafos são recalculados "
             "automaticamente.",
             style={'color': C['txt2'], 'marginBottom': '20px'},
         ),
@@ -1432,11 +1432,11 @@ tab_grafos = html.Div([
         ),
 
         method_section(
-            "Centralidade em Redes — Identificação de Hubs Críticos",
+            "Centralidade em Redes - Identificação de Hubs Críticos",
             "Freeman; Brandes", "1977/2001", "Análise de Redes Sociais",
             "Betweenness identifica unidades-ponte por onde passam os menores caminhos da rede "
             "(a remoção fragmenta o sistema); closeness mede o alcance médio de cada unidade às demais. "
-            "Ambas ponderadas pela distância geográfica — valores altos indicam hubs prioritários "
+            "Ambas ponderadas pela distância geográfica - valores altos indicam hubs prioritários "
             "para investimento e contingência.",
             graph_id='g-central',
         ),
@@ -1633,7 +1633,7 @@ tab_policlinica = html.Div([
 
         # Integração com o grafo
         html.Div([
-            _sec_title("Integração com a Rede — Grafo de Proximidade"),
+            _sec_title("Integração com a Rede - Grafo de Proximidade"),
             html.P(f"A Policlínica (★) e suas conexões diretas no grafo de proximidade "
                    f"(unidades a menos de {THRESHOLD_KM}km). A unidade também aparece "
                    f"destacada na aba \"Mapa e Cobertura\" e no grafo de coloração da aba "
@@ -1686,7 +1686,7 @@ def fig_scen_map(data, added=()):
                         symbol='star' if is_new else 'circle',
                         color='#e9c46a' if is_new else CAT_COLORS.get(r.Categoria, C['secondary']),
                         line=dict(width=1.5, color='#1b4332')),
-            text=[f"<b>{'★ ' if is_new else ''}{r.Nome}</b><br>{r.Categoria} — {r.Bairro}"],
+            text=[f"<b>{'★ ' if is_new else ''}{r.Nome}</b><br>{r.Categoria} - {r.Bairro}"],
             hovertemplate='%{text}<extra></extra>',
             name='★ Novas (cenário)' if is_new else r.Categoria,
             legendgroup='novo' if is_new else r.Categoria,
@@ -1709,7 +1709,7 @@ def fig_scen_map(data, added=()):
 def _delta(base, novo, fmt='{:.0f}', melhor='maior'):
     d = novo - base
     if abs(d) < 1e-9:
-        return html.Span(' —', style={'color': C['txt2'], 'fontSize': '0.8rem'})
+        return html.Span(' -', style={'color': C['txt2'], 'fontSize': '0.8rem'})
     bom = (d > 0) if melhor == 'maior' else (d < 0)
     return html.Span(f" {'▲' if d > 0 else '▼'} {fmt.format(abs(d))}",
                      style={'color': C['secondary'] if bom else C['danger'],
@@ -1764,25 +1764,25 @@ def render_comparacao(mods):
         return html.Ul([
             html.Li([html.Strong(a['nome'], style={
                         'color': C['danger'] if a['nivel'] == 'danger' else '#9a7b00'}),
-                     html.Span(f" — {a['texto']}", style={'color': C['txt2']})],
+                     html.Span(f" - {a['texto']}", style={'color': C['txt2']})],
                     style={'fontSize': '0.83rem', 'marginBottom': '6px'})
             for a in alertas
         ], style={'paddingLeft': '18px', 'margin': '0'})
 
     sug = sugerir_local_ubs(data)
     sug_div = html.Div([
-        html.H4("Facility Location — Onde abrir a próxima UBS?",
+        html.H4("Facility Location - Onde abrir a próxima UBS?",
                 style={'color': C['primary'], 'marginTop': '0'}),
         (html.P([
             f"Sugestão (greedy, maximiza população coberta a ≤ {RAIO_ACESSO_KM:g}km): instalar UBS em ",
             html.Strong(sug['bairro']),
-            f" (lat {sug['coord'][0]:.5f}, lon {sug['coord'][1]:.5f}) — cobriria ",
+            f" (lat {sug['coord'][0]:.5f}, lon {sug['coord'][1]:.5f}) - cobriria ",
             html.Strong(f"{sug['ganho']:,} habitantes".replace(',', '.')),
             f" hoje descobertos. Bairros sem UBS a ≤ {RAIO_ACESSO_KM:g}km: "
             f"{', '.join(sug['descobertos'])}.",
         ], style={'color': C['txt2'], 'fontSize': '0.88rem', 'lineHeight': '1.7', 'margin': '0'})
          if sug else
-         html.P("Toda a população está a ≤ 2km de uma UBS neste cenário — nenhuma "
+         html.P("Toda a população está a ≤ 2km de uma UBS neste cenário - nenhuma "
                 "instalação adicional necessária pelo critério de acessibilidade.",
                 style={'color': C['secondary'], 'fontSize': '0.88rem', 'margin': '0'})),
     ], style={**card({'borderLeft': f"4px solid {C['accent']}"})})
@@ -1794,19 +1794,19 @@ def render_comparacao(mods):
         mods_txt.append(f"Removidas: {', '.join(removed)}.")
 
     return html.Div([
-        html.P(' '.join(mods_txt) or 'Nenhuma modificação — cenário idêntico ao atual.',
+        html.P(' '.join(mods_txt) or 'Nenhuma modificação - cenário idêntico ao atual.',
                style={'color': C['primary'], 'fontWeight': '600', 'fontSize': '0.9rem'}),
         html.Div(tab_cmp, style=card()),
         html.Div([
             html.Div([
-                html.H4("Grafo — Cenário Atual", style={'color': C['primary'], 'marginTop': '0'}),
+                html.H4("Grafo - Cenário Atual", style={'color': C['primary'], 'marginTop': '0'}),
                 dcc.Graph(figure=fig_graph_coloring(base['G'], base['col']),
                           config={'displayModeBar': False}, style={'height': '420px'}),
                 html.H5("Alertas de sobrecarga", style={'color': C['primary'], 'marginBottom': '6px'}),
                 _alert_list(base['alertas']),
             ], style={**card({'flex': '1', 'minWidth': '380px', 'marginBottom': '0'})}),
             html.Div([
-                html.H4("Grafo — Cenário Simulado", style={'color': C['primary'], 'marginTop': '0'}),
+                html.H4("Grafo - Cenário Simulado", style={'color': C['primary'], 'marginTop': '0'}),
                 dcc.Graph(figure=fig_graph_coloring(cen['G'], cen['col']),
                           config={'displayModeBar': False}, style={'height': '420px'}),
                 html.H5("Alertas de sobrecarga", style={'color': C['primary'], 'marginBottom': '6px'}),
@@ -1947,7 +1947,7 @@ app.layout = html.Div([
         dcc.Tab(label='Mapa e Cobertura',    value='mapa',    style=TAB_S, selected_style=TAB_SEL),
         dcc.Tab(label='Visualização de Grafos', value='grafos', style=TAB_S, selected_style=TAB_SEL),
         dcc.Tab(label='Cenários "E se?"',    value='cenarios', style=TAB_S, selected_style=TAB_SEL),
-        dcc.Tab(label='Estudo de Caso — Policlínica', value='policlinica', style=TAB_S, selected_style=TAB_SEL),
+        dcc.Tab(label='Estudo de Caso - Policlínica', value='policlinica', style=TAB_S, selected_style=TAB_SEL),
     ], style={'backgroundColor': C['white'], 'borderBottom': f"1px solid {C['line']}",
               'position': 'sticky', 'top': '0', 'zIndex': '999',
               'boxShadow': '0 2px 12px rgba(27,67,50,0.06)'}),
