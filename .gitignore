@@ -1,5 +1,7 @@
 .claude/
 __pycache__/
 *.csv
+*.pdf
 *.html
 .venv/
+ibge_cache.json

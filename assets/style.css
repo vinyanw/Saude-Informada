@@ -1,71 +1,150 @@
-* {
-    box-sizing: border-box;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
-    border-radius: 0 !important;
+/* ──────────────────────────────────────────────────────────
+   Saúde Informada — identidade visual
+   Paleta: #1b4332 · #2d6a4f · #40916c · #52b788 · #d8f3dc
+   ────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
+
+:root {
+    --deep:    #1b4332;
+    --primary: #2d6a4f;
+    --mid:     #40916c;
+    --accent:  #52b788;
+    --mint:    #d8f3dc;
+    --line:    #e3efe8;
 }
 
+* {
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* fundo com grade de pontos sutil (textura técnica) */
 body {
     margin: 0;
     padding: 0;
-    background-color: #f0fdf4;
     color: #1b4332;
+    background-color: #f6faf7;
+    background-image: radial-gradient(rgba(45, 106, 79, 0.07) 1px, transparent 1px);
+    background-size: 22px 22px;
+    font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
-/* Tabs */
-.dash-tabs .tab--selected {
-    border-top: 3px solid #40916c !important;
-    border-radius: 0 !important;
+::selection {
+    background: rgba(82, 183, 136, 0.3);
 }
 
-.dash-tab {
-    border-radius: 0 !important;
+/* ── cards com elevação no hover ─────────────────────────── */
+.hover-card {
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    will-change: transform;
+}
+.hover-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 30px rgba(27, 67, 50, 0.13),
+                0 0 0 1px rgba(82, 183, 136, 0.35);
 }
 
-/* Dropdown */
+/* ── botões ──────────────────────────────────────────────── */
+button {
+    font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    border-radius: 8px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+button:hover {
+    filter: brightness(1.07);
+    box-shadow: 0 6px 16px rgba(27, 67, 50, 0.20);
+    transform: translateY(-1px);
+}
+button:active {
+    transform: translateY(0);
+    filter: brightness(0.98);
+}
+
+/* botões de ordenação dentro da tabela não devem "flutuar" */
+th button:hover {
+    box-shadow: none;
+    transform: none;
+    filter: brightness(1.15);
+}
+
+/* ── inputs ──────────────────────────────────────────────── */
+input {
+    font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    border-radius: 8px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input:focus {
+    outline: none;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.18);
+}
+
+/* ── dropdowns (dcc.Dropdown / react-select) ─────────────── */
 .Select-control {
-    border-radius: 0 !important;
-    border: 2px solid #95d5b2 !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 8px !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-
+.Select-control:hover,
+.is-focused .Select-control {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.14) !important;
+}
 .Select-menu-outer {
-    border-radius: 0 !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 12px 28px rgba(27, 67, 50, 0.14) !important;
+    overflow: hidden;
 }
-
 .Select-option.is-focused {
-    background-color: #d8f3dc !important;
+    background-color: var(--mint) !important;
 }
-
 .Select-option.is-selected {
-    background-color: #40916c !important;
+    background-color: var(--mid) !important;
     color: white !important;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-::-webkit-scrollbar-track {
-    background: #d8f3dc;
-}
-::-webkit-scrollbar-thumb {
-    background: #52b788;
-}
-
-/* Tables */
+/* ── tabelas ─────────────────────────────────────────────── */
 table {
     border-collapse: collapse;
 }
+tbody tr {
+    transition: background 0.12s ease;
+}
+tbody tr:hover {
+    background: #edf8f1 !important;
+}
+thead th:first-child { border-top-left-radius: 10px; }
+thead th:last-child  { border-top-right-radius: 10px; }
 
-th, td {
-    border-radius: 0 !important;
+/* ── tabs ────────────────────────────────────────────────── */
+.tab {
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.tab:hover {
+    color: var(--primary) !important;
+    background: rgba(82, 183, 136, 0.07) !important;
 }
 
-/* Plotly */
-.js-plotly-plot .plotly .modebar {
-    border-radius: 0 !important;
+/* ── gráficos plotly ─────────────────────────────────────── */
+.js-plotly-plot .plotly .main-svg {
+    border-radius: 10px;
 }
-
 .js-plotly-plot .plotly .modebar-btn path {
-    fill: #2d6a4f;
+    fill: var(--primary);
 }
+
+/* ── barra de rolagem ────────────────────────────────────── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: #b7e4c7;
+    border-radius: 8px;
+    border: 2px solid #f6faf7;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
