@@ -347,15 +347,16 @@ def colorir(Gt):
 
 G = build_graph(df)
 coloring, chromatic_n = colorir(G)
+CAT_BY_NOME = df.set_index('Nome')['Categoria'].to_dict()
 
 # ──────────────────────────────────────────────────────────
 # MAPA FOLIUM
 # ──────────────────────────────────────────────────────────
-def make_map(cat_filter='Todos', tipo_filter='Todos', busca=''):
+def make_map(cats=None, tipo_filter='Todos', busca=''):
     m = folium.Map(location=[-4.865, -43.36], zoom_start=13, tiles="CartoDB positron")
     data = df.copy()
-    if cat_filter != 'Todos':
-        data = data[data['Categoria'] == cat_filter]
+    if cats is not None:
+        data = data[data['Categoria'].isin(cats)]
     if tipo_filter != 'Todos':
         data = data[data['Tipo'] == tipo_filter]
     if busca:
@@ -363,9 +364,12 @@ def make_map(cat_filter='Todos', tipo_filter='Todos', busca=''):
                     data['Categoria'].str.contains(busca, case=False, na=False)]
     node_set = set(data['Nome'])
 
+    # control=False: a filtragem por categoria acontece no Dash (checklist),
+    # que refaz o mapa filtrando nós E arestas juntos — o LayerControl do
+    # folium só esconderia os marcadores, deixando as arestas órfãs.
     feature_groups = {}
     for cat in data['Categoria'].unique():
-        feature_groups[cat] = folium.FeatureGroup(name=cat, show=True)
+        feature_groups[cat] = folium.FeatureGroup(name=cat, show=True, control=False)
 
     edge_group = folium.FeatureGroup(name='Conexões (arestas)', show=False)
 
@@ -776,6 +780,79 @@ def get_metricas_base():
     if METRICAS_BASE is None:
         METRICAS_BASE = metricas_cenario(df)
     return METRICAS_BASE
+
+
+def insights_mapa(fdf):
+    """Situações analíticas do recorte atual do mapa: compara a rede filtrada
+    com a rede completa para apontar o que muda ao remover categorias/tipos,
+    considerando as conexões propostas (arestas ≤ THRESHOLD_KM)."""
+    ins = []
+    if fdf.empty:
+        return [('info', "Nenhuma unidade no recorte",
+                 "Marque ao menos uma categoria de serviço para gerar as análises "
+                 "do recorte atual.")]
+
+    nomes = set(fdf['Nome'])
+    filtrado = len(nomes) < len(df)
+    sub = G.subgraph(nomes)
+
+    # 1) Bairros que perdem toda a oferta local no recorte
+    perdidos = sorted(set(df['Bairro']) - set(fdf['Bairro']))
+    if perdidos:
+        pop_str = f"{sum(POPULATION.get(b, 0) for b in perdidos):,}".replace(',', '.')
+        lista = ', '.join(perdidos[:6]) + ('…' if len(perdidos) > 6 else '')
+        ins.append(('danger',
+                    f"{len(perdidos)} bairro(s) ficam sem nenhuma unidade",
+                    f"Sem as categorias desmarcadas, {lista} perdem toda a oferta "
+                    f"local (~{pop_str} hab). Analisar para onde essa demanda "
+                    f"seria deslocada e a distância até a unidade mais próxima."))
+
+    # 2) Impacto na acessibilidade (se o recorte afeta UBS)
+    acess_f = indice_acessibilidade(fdf)
+    acess_b = get_metricas_base()['acess']
+    if acess_f < acess_b - 0.05:
+        ins.append(('danger' if acess_f < acess_b * 0.5 else 'warn',
+                    "Acessibilidade à atenção básica cai no recorte",
+                    f"O índice de população a ≤ {RAIO_ACESSO_KM:g}km de uma UBS cai de "
+                    f"{acess_b:.1f}% para {acess_f:.1f}%. Analisar quais bairros "
+                    f"saem do raio de acesso e o papel das UBS removidas."))
+
+    # 3) Conectividade das conexões propostas no recorte
+    ncomp = nx.number_connected_components(sub) if len(sub) else 0
+    isoladas = [n for n in sub.nodes if sub.degree(n) == 0]
+    if filtrado and (isoladas or ncomp > 1):
+        ins.append(('warn',
+                    f"Conexões do recorte: {ncomp} componente(s), "
+                    f"{len(isoladas)} unidade(s) isolada(s)",
+                    f"Unidades sem nenhuma vizinha a ≤ {THRESHOLD_KM:g}km no recorte "
+                    f"não têm alternativa próxima de encaminhamento — candidatas a "
+                    f"análise de redundância zero. Ative a camada \"Conexões "
+                    f"(arestas)\" no mapa para visualizar os agrupamentos."))
+
+    # 4) Hub do recorte: unidade que mais concentra conexões
+    if sub.number_of_edges():
+        hub, grau = max(sorted(sub.degree), key=lambda kv: kv[1])
+        viz_cats = {CAT_BY_NOME.get(v) for v in sub.neighbors(hub)}
+        ins.append(('info',
+                    f"Hub do recorte: {hub}",
+                    f"Concentra {grau} conexões ≤ {THRESHOLD_KM:g}km com "
+                    f"{len(viz_cats)} categoria(s) distintas — ponto de articulação "
+                    f"do recorte. Analisar o efeito de sobrecarga ou interdição "
+                    f"desta unidade na aba Cenários \"E se?\"."))
+
+    # 5) Redundância: conexões entre unidades da mesma categoria
+    mesma_cat = [(u, v) for u, v in sub.edges()
+                 if CAT_BY_NOME.get(u) == CAT_BY_NOME.get(v)]
+    if mesma_cat:
+        u0, v0 = mesma_cat[0]
+        ins.append(('info',
+                    f"{len(mesma_cat)} conexão(ões) entre unidades da mesma categoria",
+                    f"Pares como {u0} ↔ {v0} ({CAT_BY_NOME.get(u0)}) operam a ≤ "
+                    f"{THRESHOLD_KM:g}km entre si: possível redundância de oferta ou "
+                    f"oportunidade de escalonamento sem conflito (ver coloração na "
+                    f"aba Visualização de Grafos)."))
+
+    return ins[:4]
 
 
 def fig_pop_voronoi():
@@ -1196,7 +1273,7 @@ tab_landing = html.Div([
 # ──────────────────────────────────────────────────────────
 # LAYOUT: MAPA E COBERTURA
 # ──────────────────────────────────────────────────────────
-all_cats = ['Todos'] + sorted(df['Categoria'].unique().tolist())
+all_cats = sorted(df['Categoria'].unique().tolist())
 
 _KPI_BASE = get_metricas_base()
 
@@ -1233,11 +1310,13 @@ tab_mapa = html.Div([
                        'fontSize': '0.86rem', 'boxSizing': 'border-box'},
             ),
             html.Label("Categoria de Serviço", style={'fontWeight': '600', 'color': C['primary'], 'fontSize': '0.88rem'}),
-            dcc.Dropdown(
+            dcc.Checklist(
                 id='filter-cat',
-                options=[{'label': c, 'value': c} for c in all_cats],
-                value='Todos', clearable=False,
-                style={'marginTop': '8px', 'marginBottom': '16px'},
+                options=[{'label': f" {c}", 'value': c} for c in all_cats],
+                value=all_cats,
+                style={'marginTop': '8px', 'marginBottom': '16px',
+                       'fontSize': '0.84rem', 'color': C['txt2'],
+                       'display': 'flex', 'flexDirection': 'column', 'gap': '4px'},
             ),
             html.Label("Tipo de Atendimento", style={'fontWeight': '600', 'color': C['primary'], 'fontSize': '0.88rem'}),
             dcc.Dropdown(
@@ -1288,6 +1367,23 @@ tab_mapa = html.Div([
     ], style={'display': 'flex', 'marginBottom': '20px', 'height': '580px',
               'boxShadow': '0 8px 24px rgba(27,67,50,0.06)',
               'borderRadius': '14px'}),
+
+    # Insights do recorte atual (atualizados pelos filtros)
+    html.Div([
+        html.H3("Situações para Analisar no Recorte Atual", style={
+            'color': C['primary'], 'marginTop': '0',
+            'borderBottom': f"1px solid {C['line']}", 'paddingBottom': '10px',
+            'borderLeft': f"3px solid {C['accent']}", 'paddingLeft': '12px',
+            'letterSpacing': '-0.01em',
+        }),
+        html.P(
+            "Os cards abaixo reagem aos filtros: desmarque categorias de serviço para "
+            f"ver o impacto na cobertura por bairro, na acessibilidade e nas conexões "
+            f"propostas (unidades a ≤ {THRESHOLD_KM:g}km entre si).",
+            style={'fontSize': '0.85rem', 'color': C['txt2'], 'fontStyle': 'italic'},
+        ),
+        html.Div(id='map-insights'),
+    ], style=card()),
 
     # Charts row
     html.Div([
@@ -2001,8 +2097,9 @@ def render_tab(tab):
 
 
 @app.callback(
-    Output('map-frame',   'srcDoc'),
-    Output('map-summary', 'children'),
+    Output('map-frame',    'srcDoc'),
+    Output('map-summary',  'children'),
+    Output('map-insights', 'children'),
     Output('bar-chart',   'figure'),
     Output('pie-chart',   'figure'),
     Output('cov-table',   'children'),
@@ -2011,11 +2108,11 @@ def render_tab(tab):
     Input('filter-busca', 'value'),
     Input('sort-state',   'data'),
 )
-def update_mapa(cat, tipo, busca, sort_state):
+def update_mapa(cats, tipo, busca, sort_state):
     busca = (busca or '').strip()
+    cats = cats or []
     fdf = df.copy()
-    if cat != 'Todos':
-        fdf = fdf[fdf['Categoria'] == cat]
+    fdf = fdf[fdf['Categoria'].isin(cats)]
     if tipo != 'Todos':
         fdf = fdf[fdf['Tipo'] == tipo]
     if busca:
@@ -2023,7 +2120,7 @@ def update_mapa(cat, tipo, busca, sort_state):
                   fdf['Categoria'].str.contains(busca, case=False, na=False)]
 
     # Map
-    map_html = make_map(cat, tipo, busca)
+    map_html = make_map(cats, tipo, busca)
 
     # Summary
     tipo_badge = None
@@ -2188,7 +2285,14 @@ def update_mapa(cat, tipo, busca, sort_state):
     ], style={'width': '100%', 'borderCollapse': 'collapse',
               'fontFamily': 'Inter, "Helvetica Neue", Helvetica, Arial, sans-serif'})
 
-    return map_html, summary, bar_fig, pie_fig, table
+    insights = html.Div(
+        [_rec_card(n, t, x) for n, t, x in insights_mapa(fdf)],
+        style={'display': 'grid',
+               'gridTemplateColumns': 'repeat(auto-fit, minmax(360px, 1fr))',
+               'gap': '12px', 'alignItems': 'start'},
+    )
+
+    return map_html, summary, insights, bar_fig, pie_fig, table
 
 
 @app.callback(
