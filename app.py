@@ -1,5 +1,5 @@
 import dash
-from dash import dcc, html, Input, Output
+from dash import dcc, html, Input, Output, State, ctx, ALL
 import plotly.graph_objects as go
 import pandas as pd
 import networkx as nx
@@ -15,7 +15,7 @@ from scipy.spatial import Voronoi
 # CONFIGURAÇÕES
 # ──────────────────────────────────────────────────────────
 CSV_PATH = Path("Coleta Geolocalizacional de Dados Saúde Informada .csv")
-THRESHOLD_KM = 2.0
+THRESHOLD_KM = 1.0
 
 C = {
     'bg':           '#f0fdf4',
@@ -38,7 +38,7 @@ CAT_COLORS = {
     "UBS":                         "#2d6a4f",
     "UPA":                         "#e76f51",
     "SAMU":                        "#e9c46a",
-    "Hospital":                    "#1b4332",
+    "Hospital":                    "#c1121f",
     "Maternidade":                 "#f4acb7",
     "CAPS":                        "#9b5de5",
     "CAPS / Acolhimento":          "#c77dff",
@@ -48,6 +48,22 @@ CAT_COLORS = {
     "Diagnóstico":                 "#adb5bd",
     "Ambulatório":                 "#95d5b2",
     "Clínica Especializada":       "#b7e4c7",
+}
+
+TIPO_SERVICO = {
+    "UBS":                         "Não-Emergencial",
+    "UPA":                         "Emergencial",
+    "SAMU":                        "Emergencial",
+    "Hospital":                    "Emergencial",
+    "Maternidade":                 "Emergencial",
+    "CAPS":                        "Não-Emergencial",
+    "CAPS / Acolhimento":          "Não-Emergencial",
+    "Centro Especializado":        "Não-Emergencial",
+    "Ambulatório / Especializado": "Não-Emergencial",
+    "Policlínica / Ambulatório":   "Não-Emergencial",
+    "Diagnóstico":                 "Não-Emergencial",
+    "Ambulatório":                 "Não-Emergencial",
+    "Clínica Especializada":       "Não-Emergencial",
 }
 
 FOLIUM_CAT_COLORS = {
@@ -94,6 +110,7 @@ def parse_coord(s):
 df_raw = pd.read_csv(CSV_PATH)
 df_raw['coord'] = df_raw['Coordenada de Localização'].apply(parse_coord)
 df = df_raw.dropna(subset=['coord']).reset_index(drop=True)
+df['Tipo'] = df['Categoria'].map(TIPO_SERVICO).fillna('Não-Emergencial')
 
 # ──────────────────────────────────────────────────────────
 # GRAFO
@@ -114,31 +131,46 @@ chromatic_n = max(coloring.values()) + 1 if coloring else 0
 # ──────────────────────────────────────────────────────────
 # MAPA FOLIUM
 # ──────────────────────────────────────────────────────────
-def make_map(cat_filter='Todos'):
+def make_map(cat_filter='Todos', tipo_filter='Todos'):
     m = folium.Map(location=[-4.865, -43.36], zoom_start=13, tiles="CartoDB positron")
-    data = df if cat_filter == 'Todos' else df[df['Categoria'] == cat_filter]
+    data = df.copy()
+    if cat_filter != 'Todos':
+        data = data[data['Categoria'] == cat_filter]
+    if tipo_filter != 'Todos':
+        data = data[data['Tipo'] == tipo_filter]
     node_set = set(data['Nome'])
 
     feature_groups = {}
     for cat in data['Categoria'].unique():
         feature_groups[cat] = folium.FeatureGroup(name=cat, show=True)
 
+    edge_group = folium.FeatureGroup(name='Conexões (arestas)', show=False)
+
     for _, r in data.iterrows():
         lat, lon = r['coord']
         cat = r['Categoria']
+        tipo = r['Tipo']
+        tipo_color = '#e76f51' if tipo == 'Emergencial' else '#2d6a4f'
         popup = (
             f"<div style='font-family:Helvetica,Arial,sans-serif;min-width:200px'>"
             f"<b style='color:#1b4332'>{r['Nome']}</b><br>"
             f"<span style='color:#2d6a4f'>Bairro:</span> {r['Bairro']}<br>"
             f"<span style='color:#2d6a4f'>Categoria:</span> {cat}<br>"
+            f"<span style='color:#2d6a4f'>Tipo:</span> "
+            f"<b style='color:{tipo_color}'>{tipo}</b><br>"
             f"<span style='color:#2d6a4f'>Cor cromática:</span> {coloring.get(r['Nome'], 'N/A')}"
             f"</div>"
         )
-        folium.Marker(
+        folium.CircleMarker(
             [lat, lon],
+            radius=8,
+            color='white',
+            weight=1.5,
+            fill=True,
+            fill_color=CAT_COLORS.get(cat, '#2d6a4f'),
+            fill_opacity=0.9,
             popup=folium.Popup(popup, max_width=280),
             tooltip=r['Nome'],
-            icon=folium.Icon(color=FOLIUM_CAT_COLORS.get(cat, 'black'), icon='plus', prefix='fa'),
         ).add_to(feature_groups[cat])
 
     for u, v in G.edges():
@@ -147,9 +179,10 @@ def make_map(cat_filter='Todos'):
             lat2, lon2 = G.nodes[v]['pos']
             folium.PolyLine(
                 [[lat1, lon1], [lat2, lon2]],
-                weight=1.5, color='#40916c', opacity=0.25
-            ).add_to(m)
+                weight=1.5, color='#40916c', opacity=0.4
+            ).add_to(edge_group)
 
+    edge_group.add_to(m)
     for fg in feature_groups.values():
         fg.add_to(m)
     folium.LayerControl(collapsed=False).add_to(m)
@@ -572,10 +605,21 @@ tab_mapa = html.Div([
                 'color': C['primary'], 'marginTop': '0',
                 'borderBottom': f"3px solid {C['accent']}", 'paddingBottom': '10px', 'marginBottom': '16px',
             }),
-            html.Label("Tipo de Serviço", style={'fontWeight': '600', 'color': C['primary'], 'fontSize': '0.88rem'}),
+            html.Label("Categoria de Serviço", style={'fontWeight': '600', 'color': C['primary'], 'fontSize': '0.88rem'}),
             dcc.Dropdown(
                 id='filter-cat',
                 options=[{'label': c, 'value': c} for c in all_cats],
+                value='Todos', clearable=False,
+                style={'marginTop': '8px', 'marginBottom': '16px'},
+            ),
+            html.Label("Tipo de Atendimento", style={'fontWeight': '600', 'color': C['primary'], 'fontSize': '0.88rem'}),
+            dcc.Dropdown(
+                id='filter-tipo',
+                options=[
+                    {'label': 'Todos', 'value': 'Todos'},
+                    {'label': 'Emergencial', 'value': 'Emergencial'},
+                    {'label': 'Não-Emergencial', 'value': 'Não-Emergencial'},
+                ],
                 value='Todos', clearable=False,
                 style={'marginTop': '8px', 'marginBottom': '20px'},
             ),
@@ -740,6 +784,8 @@ app.layout = html.Div([
         ], style={'display': 'flex'}),
     ], style=HDR),
 
+    dcc.Store(id='sort-state', data={'col': 'n', 'asc': False}),
+
     dcc.Tabs(id='tabs', value='landing', children=[
         dcc.Tab(label='Início',              value='landing', style=TAB_S, selected_style=TAB_SEL),
         dcc.Tab(label='Mapa e Cobertura',    value='mapa',    style=TAB_S, selected_style=TAB_SEL),
@@ -781,19 +827,37 @@ def render_tab(tab):
     Output('pie-chart',   'figure'),
     Output('cov-table',   'children'),
     Input('filter-cat',   'value'),
+    Input('filter-tipo',  'value'),
+    Input('sort-state',   'data'),
 )
-def update_mapa(cat):
-    fdf = df if cat == 'Todos' else df[df['Categoria'] == cat]
+def update_mapa(cat, tipo, sort_state):
+    fdf = df.copy()
+    if cat != 'Todos':
+        fdf = fdf[fdf['Categoria'] == cat]
+    if tipo != 'Todos':
+        fdf = fdf[fdf['Tipo'] == tipo]
 
     # Map
-    map_html = make_map(cat)
+    map_html = make_map(cat, tipo)
 
     # Summary
+    tipo_badge = None
+    if tipo != 'Todos':
+        badge_color = C['danger'] if tipo == 'Emergencial' else C['secondary']
+        tipo_badge = html.Div(
+            tipo,
+            style={
+                'backgroundColor': badge_color, 'color': 'white',
+                'fontSize': '0.72rem', 'fontWeight': '600',
+                'padding': '2px 8px', 'marginTop': '6px', 'display': 'inline-block',
+            }
+        )
     summary = html.Div([
         html.Div([
             html.Span(str(len(fdf)), style={'fontSize': '2rem', 'fontWeight': '700',
                                             'color': C['primary'], 'display': 'block'}),
             html.Span("unidades", style={'fontSize': '0.78rem', 'color': C['txt2']}),
+            tipo_badge,
         ], style={'marginBottom': '10px'}),
         html.Div([
             html.Span(str(fdf['Bairro'].nunique()), style={'fontSize': '1.5rem', 'fontWeight': '700',
@@ -851,13 +915,50 @@ def update_mapa(cat):
         else:              status, sc = 'Deficiente',  C['danger']
         rows.append(dict(bairro=bairro, pop=pop, n=n_u,
                          ratio=ratio, pct=pct, status=status, sc=sc))
-    rows.sort(key=lambda x: x['n'], reverse=True)
+    sort_col = (sort_state or {}).get('col', 'n')
+    sort_asc = (sort_state or {}).get('asc', False)
+    STATUS_ORDER = {'Adequada': 2, 'Parcial': 1, 'Deficiente': 0}
 
-    TH = lambda txt: html.Th(txt, style={
-        'padding': '10px 14px', 'backgroundColor': C['primary'], 'color': 'white',
-        'fontWeight': '600', 'fontSize': '0.85rem', 'whiteSpace': 'nowrap',
-        'textAlign': 'left' if txt == 'Bairro' else 'right' if txt != 'Status' else 'center',
-    })
+    def sort_key(x):
+        v = x[sort_col]
+        return STATUS_ORDER.get(v, 0) if sort_col == 'status' else v
+
+    rows.sort(key=sort_key, reverse=not sort_asc)
+
+    SORTABLE = {
+        'Pop. Estimada': 'pop', 'Unidades': 'n',
+        'Unid./1000 hab.': 'ratio', 'Cobertura (%)': 'pct', 'Status': 'status',
+    }
+
+    def TH(txt):
+        col_key = SORTABLE.get(txt)
+        is_sorted = col_key is not None and sort_col == col_key
+        arrow = (' ▲' if sort_asc else ' ▼') if is_sorted else ' ⇅'
+        th_align = 'left' if txt == 'Bairro' else 'center' if txt == 'Status' else 'right'
+        base = {
+            'padding': '10px 14px', 'backgroundColor': C['primary'], 'color': 'white',
+            'fontWeight': '600', 'fontSize': '0.85rem', 'whiteSpace': 'nowrap',
+            'textAlign': th_align,
+        }
+        if col_key is None:
+            return html.Th(txt, style=base)
+        return html.Th(
+            html.Button(
+                [txt, html.Span(arrow, style={
+                    'fontSize': '0.7rem', 'marginLeft': '4px',
+                    'opacity': '1' if is_sorted else '0.55',
+                })],
+                id={'type': 'sort-col', 'col': col_key},
+                n_clicks=0,
+                style={
+                    'background': 'none', 'border': 'none', 'color': 'white',
+                    'fontWeight': '600', 'fontSize': '0.85rem', 'cursor': 'pointer',
+                    'padding': '0', 'width': '100%', 'textAlign': th_align,
+                },
+            ),
+            style=base,
+        )
+
     def TD(txt, align='left', bold=False, color=None):
         return html.Td(txt, style={
             'padding': '8px 14px', 'fontSize': '0.85rem', 'textAlign': align,
@@ -902,6 +1003,23 @@ def update_mapa(cat):
               'fontFamily': 'Helvetica Neue, Helvetica, Arial, sans-serif'})
 
     return map_html, summary, bar_fig, pie_fig, table
+
+
+@app.callback(
+    Output('sort-state', 'data'),
+    Input({'type': 'sort-col', 'col': ALL}, 'n_clicks'),
+    State('sort-state', 'data'),
+    prevent_initial_call=True,
+)
+def update_sort(n_clicks_list, current_sort):
+    triggered = ctx.triggered_id
+    if not triggered or not any(n or 0 for n in n_clicks_list):
+        return current_sort or {'col': 'n', 'asc': False}
+    col = triggered['col']
+    current = current_sort or {'col': 'n', 'asc': False}
+    if current['col'] == col:
+        return {'col': col, 'asc': not current['asc']}
+    return {'col': col, 'asc': True}
 
 
 # ──────────────────────────────────────────────────────────
