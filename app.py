@@ -38,7 +38,7 @@ TABS = [
     ('cobertura',   'Cobertura por Bairro',         tab_coverage),
     ('vazios',      'Vazios Assistenciais',         tab_gaps),
     ('educativo',   'Módulo Educativo (SUS)',       tab_education),
-    ('cenarios',    'Cenários "E se?"',             tab_scenarios),
+    ('cenarios',    'Cenários',             tab_scenarios),
     ('policlinica', 'Estudo de Caso - Policlínica', tab_case_study),
 ]
 

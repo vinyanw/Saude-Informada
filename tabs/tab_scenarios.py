@@ -186,7 +186,7 @@ def render_comparacao(mods):
 
 def layout():
     return html.Div([
-        html.H2('Análise de Cenários "E se?"', style={'color': C['primary'], 'margin': '0 0 6px'}),
+        html.H2('Análise de Cenários', style={'color': C['primary'], 'margin': '0 0 6px'}),
         html.P(
             "Simule intervenções na rede: adicione uma nova unidade (informe as coordenadas ou "
             "clique no mapa) ou remova unidades existentes. Ao simular, o grafo de proximidade, a "
