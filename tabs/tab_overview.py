@@ -214,27 +214,132 @@ def _referencias():
             ref_item("AURENHAMMER, Franz; KLEIN, Rolf; LEE, Der-Tsai. ",
                      "Voronoi Diagrams and Delaunay Triangulations.",
                      " Singapore: World Scientific, 2013."),
+            ref_item("AYRES, J. R. C. M. ",
+                     "Organização das ações de atenção à saúde: modelos e práticas.",
+                     " Saúde e Sociedade, São Paulo, v. 18, p. 11-23, 2009. Disponível em: "
+                     "<https://www.scielo.br/j/sausoc/a/QZX9gH7KmdDvBpfDBSdRVFP/?lang=pt>. "
+                     "Acesso em: 7 mar. 2026."),
+            ref_item("BARBOSA, P. R.; CARVALHO, A. I. ",
+                     "Organização e funcionamento do SUS.",
+                     " Fortaleza: UECE, 2010. Disponível em: "
+                     "<https://cesad.ufs.br/ORBI/public/uploadCatalago/10491917022012Organizacao_e_"
+                     "Funcionamento_do_SUS_Aula_1.pdf>. Acesso em: 7 mar. 2026."),
+            ref_item("BLONDEL, V. D. et al. ",
+                     "Fast unfolding of communities in large networks.",
+                     " Journal of Statistical Mechanics: Theory and Experiment, v. 2008, n. 10, "
+                     "p. P10008, 2008. DOI: 10.1088/1742-5468/2008/10/P10008."),
+            ref_item("BRASIL. ",
+                     "Constituição da República Federativa do Brasil de 1988.",
+                     " Brasília: Presidência da República, 1988. Disponível em: "
+                     "<http://www.planalto.gov.br/ccivil_03/constituicao/constituicao.htm>. "
+                     "Acesso em: 13 mar. 2026."),
+            ref_item("BRASIL. ",
+                     "Lei nº 8.080, de 19 de setembro de 1990.",
+                     " Dispõe sobre as condições para a promoção, proteção e recuperação da "
+                     "saúde, a organização e o funcionamento dos serviços correspondentes e dá "
+                     "outras providências. Diário Oficial da União, Brasília, DF, 20 set. 1990."),
+            ref_item("BRASIL. ",
+                     "Portaria SAS/MS nº 511, de 29 de dezembro de 2000.",
+                     " Aprova a Norma de Classificação de Estabelecimentos de Saúde. Diário "
+                     "Oficial da União, Brasília, DF, 3 jan. 2001."),
+            ref_item("BRASIL. ",
+                     "Portaria nº 4.279, de 30 de dezembro de 2010.",
+                     " Estabelece diretrizes para a organização da Rede de Atenção à Saúde no "
+                     "âmbito do Sistema Único de Saúde (SUS). Diário Oficial da União, Brasília, "
+                     "DF, 31 dez. 2010."),
+            ref_item("BRASIL. ",
+                     "Meu SUS Digital.",
+                     " Brasília: Ministério da Saúde, 2025. Disponível em: "
+                     "<https://meususdigital.saude.gov.br/perfil/sobre-sus>. Acesso em: 7 mar. 2026."),
             ref_item("BRASIL. Ministério da Saúde. ",
                      "Cadastro Nacional de Estabelecimentos de Saúde (CNES).",
                      " Disponível em: <http://cnes.datasus.gov.br>. Acesso em: 5 jul. 2026."),
+            ref_item("CONSELHO REGIONAL DE MEDICINA DO ESTADO DA BAHIA (CREMEB). ",
+                     "Classificação dos Estabelecimentos de Saúde.",
+                     " Salvador: CREMEB, s.d. Disponível em: "
+                     "<https://www.cremeb.org.br/index.php/classificacao-dos-estabelecimentos-de-saude>. "
+                     "Acesso em: 7 mar. 2026."),
             ref_item("DABIRE, Inoussa et al. ",
                      "Health Centers Network Analysis with Gephi and ForceAtlas2.",
                      " 2025."),
+            ref_item("DANTAS, M. N. P.; SOUZA, D. L. B. de; SOUZA, A. M. G. de; AIQUOC, K. M.; "
+                     "SOUZA, T. A. de; BARBOSA, I. R. ",
+                     "Fatores associados ao acesso precário aos serviços de saúde no Brasil.",
+                     " Revista Brasileira de Epidemiologia, v. 24, 2021. Disponível em: "
+                     "<https://www.scielo.br/j/rbepid/a/Z4sYgLBvFbJqhXGgQ7Cdkbc/>. Acesso em: 26 mar. 2025."),
+            ref_item("FOLIUM DEVELOPMENT TEAM. ",
+                     "folium: Python data, leaflet.js maps.",
+                     " Version [atual]. Disponível em: <https://python-visualization.github.io/folium>. "
+                     "Acesso em: 13 mar. 2026."),
+            ref_item("HAMADA, R. K. F. et al. ",
+                     "Conhecendo o sistema único de saúde: um olhar da população.",
+                     " Revista APS, v. 21, n. 4, p. 504-515, 2018. Disponível em: "
+                     "<https://pesquisa.bvsalud.org/portal/resource/pt/biblio-1102557>. "
+                     "Acesso em: 7 mar. 2026."),
             ref_item("JENSEN, Tommy R.; TOFT, Bjarne. ",
                      "Graph Coloring Problems.",
                      " New York: Wiley-Interscience, 1995."),
+            ref_item("LA FORGIA, G. M.; COUTTOLENC, B. F. ",
+                     "Desempenho hospitalar no Brasil: em busca da excelência.",
+                     " São Paulo: Singular, 2009."),
+            ref_item("LEWIS, R. ",
+                     "A Guide to Graph Colouring: Algorithms and Applications.",
+                     " 2. ed. Cham: Springer, 2021."),
             ref_item("LEWIS, Rhyd. ",
                      "Graph Colouring: A Visual Tour.",
                      " arXiv, 2026. Disponível em: <https://arxiv.org/>. Acesso em: 5 jul. 2026."),
+            ref_item("MARCELO, T. G. et al. ",
+                     "Superlotação das unidades de pronto atendimento – um desafio da atenção "
+                     "básica: uma revisão bibliográfica.",
+                     " Ensaios USF, v. 1, n. 1, p. 1-10, 2022. Disponível em: "
+                     "<https://ensaios.usf.emnuvens.com.br/ensaios/article/download/167/109/686>. "
+                     "Acesso em: 7 mar. 2026."),
             ref_item("MARX, Daniel. Graph Coloring Problems and Their Applications in Scheduling. ",
                      "Periodica Polytechnica Electrical Engineering,",
                      " v. 48, n. 1-2, p. 11-16, 2004."),
-            ref_item("NETWORKX DEVELOPERS. ",
-                     "NetworkX: Network Analysis in Python.",
-                     " Disponível em: <https://networkx.org>. Acesso em: 5 jul. 2026."),
+            ref_item("NETWORKX DEVELOPMENT TEAM. ",
+                     "NetworkX – a Python package for the creation, manipulation, and study of "
+                     "the structure, dynamics, and functions of complex networks.",
+                     " Version [atual]. Disponível em: <https://networkx.org>. Acesso em: 13 mar. 2026."),
             ref_item("OKABE, Atsuyuki et al. ",
                      "Spatial Tessellations: Concepts and Applications of Voronoi Diagrams.",
                      " 2. ed. Chichester: John Wiley & Sons, 2000."),
+            ref_item("PANDAS DEVELOPMENT TEAM. ",
+                     "pandas: powerful data analysis tools for Python.",
+                     " Version [atual]. Disponível em: <https://pandas.pydata.org>. "
+                     "Acesso em: 13 mar. 2026."),
+            ref_item("PASSADOR, C. S. ",
+                     "Mapa da saúde pública no Brasil: regionalização e o ranking de eficiência "
+                     "no Sistema Único de Saúde (SUS).",
+                     " Brasília: Enap, 2021. Disponível em: "
+                     "<https://repositorio.enap.gov.br/bitstream/1/6227/1/78_Claudia%20Passador_"
+                     "final_compressed.pdf>. Acesso em: 7 mar. 2026."),
+            ref_item("SOARES, G. B. ",
+                     "Organizações Sociais de Saúde (OSS): Privatização da Gestão de Serviços de "
+                     "Saúde ou Solução Gerencial para o SUS?",
+                     " Revista de Gestão em Sistemas de Saúde, v. 5, n. 2, p. 105-119, 2016. "
+                     "Disponível em: <https://periodicos.unb.br/index.php/rgs/article/download/3547/3231>. "
+                     "Acesso em: 7 mar. 2026."),
+            ref_item("SOUZA, M. C.; GUIMARÃES, A. P. M. ",
+                     "O ensino da saúde na educação básica: desafios e possibilidades.",
+                     " In: ENCONTRO NACIONAL DE PESQUISA EM EDUCAÇÃO EM CIÊNCIAS, 11., 2017, "
+                     "Florianópolis. Anais... Florianópolis: UFSC, 2017. Disponível em: "
+                     "<https://www.researchgate.net/publication/324595117>. Acesso em: 7 mar. 2026."),
+            ref_item("TEIXEIRA, C. F. (Org.). ",
+                     "Planejamento em saúde: conceitos, métodos e experiências.",
+                     " Salvador: EDUFBA, 2010. Disponível em: "
+                     "<https://repositorio.ufba.br/bitstream/ri/6719/1/Teixeira,%20Carmen.%20Livro%20"
+                     "Planejamento%20em%20saude.pdf>. Acesso em: 7 mar. 2026."),
+            ref_item("UNIVERSIDADE DE SÃO PAULO. ",
+                     "Algoritmos para grafos: coloração de vértices.",
+                     " Disponível em: <https://www.ime.usp.br/~pf/algoritmos_para_grafos/aulas/"
+                     "vertex-coloring.html>. Acesso em: 26 mar. 2025."),
+            ref_item("ZENI, C. T.; KOPROSKI, K. Y. A. ",
+                     "O conhecimento da população referente ao Sistema Único de Saúde: uma "
+                     "análise de dados.",
+                     " Revista Multidisciplinar em Saúde, v. 2, n. 4, p. 124, 2021. Disponível em: "
+                     "<https://editoraime.com.br/revistas/index.php/rems/article/view/2884>. "
+                     "Acesso em: 7 mar. 2026."),
         ], style={'color': C['txt2']}),
     ], style=card())
 
