@@ -20,6 +20,25 @@ app = dash.Dash(
     suppress_callback_exceptions=True,
     meta_tags=[{'name': 'viewport', 'content': 'width=device-width, initial-scale=1'}],
 )
+app.index_string = '''<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        <link rel="icon" type="image/png" href="/assets/logo.png">
+        {%css%}
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>'''
+
 server = app.server
 
 TABS = [
