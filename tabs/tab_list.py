@@ -43,8 +43,11 @@ def _tabela(filtro=''):
         columns=[{'name': label, 'id': key} for key, label in TABLE_COLS],
         row_selectable='single', selected_rows=[],
         page_size=12, sort_action='native',
+        style_table={'overflowX': 'auto', 'width': '100%', 'minWidth': '0'},
         style_header={'backgroundColor': C['primary'], 'color': 'white', 'fontWeight': '600'},
-        style_cell={'fontFamily': FONT, 'fontSize': '0.85rem', 'padding': '8px 12px', 'textAlign': 'left'},
+        style_cell={'fontFamily': FONT, 'fontSize': '0.85rem', 'padding': '8px 12px', 'textAlign': 'left',
+                    'whiteSpace': 'normal', 'height': 'auto', 'overflowWrap': 'break-word'},
+        style_cell_conditional=[{'if': {'column_id': 'Nome'}, 'minWidth': '160px', 'maxWidth': '220px'}],
         style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': C['bg']}],
     )
 
@@ -101,8 +104,10 @@ def _bloco_cnes():
             data=especialidades_rows,
             columns=[{'name': k, 'id': k} for k in ['Especialidade/Função', 'Profissionais', 'Carga horária total (h/sem)']],
             page_size=8, sort_action='native',
+            style_table={'overflowX': 'auto', 'width': '100%', 'minWidth': '0'},
             style_header={'backgroundColor': C['secondary'], 'color': 'white', 'fontWeight': '600', 'fontSize': '0.8rem'},
-            style_cell={'fontFamily': FONT, 'fontSize': '0.82rem', 'padding': '6px 10px', 'textAlign': 'left'},
+            style_cell={'fontFamily': FONT, 'fontSize': '0.82rem', 'padding': '6px 10px', 'textAlign': 'left',
+                        'whiteSpace': 'normal', 'height': 'auto', 'overflowWrap': 'break-word'},
             style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': C['bg']}],
         ),
 

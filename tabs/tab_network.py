@@ -32,8 +32,10 @@ def _tabela_metricas():
     data = [{k: (round(r[k], 2) if isinstance(r[k], float) else r[k]) for k, _ in COLS} for r in rows]
     return dash_table.DataTable(
         data=data, columns=[{'name': label, 'id': key} for key, label in COLS],
+        style_table={'overflowX': 'auto', 'width': '100%', 'minWidth': '0'},
         style_header={'backgroundColor': C['primary'], 'color': 'white', 'fontWeight': '600', 'fontSize': '0.82rem'},
-        style_cell={'fontFamily': FONT, 'fontSize': '0.85rem', 'padding': '10px 12px', 'textAlign': 'center'},
+        style_cell={'fontFamily': FONT, 'fontSize': '0.85rem', 'padding': '10px 12px', 'textAlign': 'center',
+                    'whiteSpace': 'normal', 'height': 'auto'},
         style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': C['bg']}],
     )
 
