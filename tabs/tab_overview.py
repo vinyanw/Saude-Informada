@@ -1,18 +1,20 @@
-"""Aba 1 — Visão Geral / Sobre o Projeto.
+"""Aba 1 — Visão Geral.
 
-Introdução, objetivos, metodologia, KPIs principais, glossário de termos
-técnicos e links úteis (CNES, Meu SUS Digital, GitHub).
+Introdução, pergunta central da pesquisa, objetivos, metodologia, KPIs
+principais, glossário de termos técnicos e referências.
 """
 from dash import html
 
-from colors import C, THRESHOLD_KM
-from components import ack, card, kpi, ref_item, stat, step
-from data_utils import df
-from graph_utils import chromatic_n
+from colors import C, DEFAULT_RADIUS_KM, RADII_KM
+from components import ack, card, kpi, ref_item, stat
+from data_utils import df_all, df_geo
+from graph_utils import metricas_raio
 
-n_units = len(df)
-n_bairros = df['Bairro'].nunique()
-n_cats = df['Categoria'].nunique()
+n_units = len(df_all)
+n_geo = len(df_geo)
+n_bairros = df_all['Bairro'].nunique()
+n_cats = df_all['Categoria'].nunique()
+m_default = metricas_raio(DEFAULT_RADIUS_KM)
 
 
 def _section_title(txt):
@@ -31,16 +33,19 @@ def _hero():
             'margin': '0 0 6px',
         }),
         html.H2(
-            "Mapeamento e Análise dos Serviços de Saúde Pública em Caxias-MA via Teoria dos Grafos",
+            "Distribuição Espacial dos Serviços Públicos de Saúde de Caxias-MA via Teoria dos Grafos",
             style={'fontSize': '1.15rem', 'fontWeight': '400', 'color': C['lighter'], 'margin': '0 0 16px'},
         ),
         html.P(
-            "Plataforma interativa que integra dados geoespaciais validados a algoritmos de coloração de "
-            "grafos para revelar padrões de cobertura, redundâncias e lacunas na rede pública de saúde.",
-            style={'color': '#b7e4c7', 'maxWidth': '720px', 'lineHeight': '1.7', 'marginBottom': '24px'},
+            "Como a distribuição espacial dos serviços públicos de saúde de Caxias-MA pode ser analisada "
+            "por meio da teoria dos grafos para evidenciar concentrações e possíveis vazios assistenciais? "
+            "Esta plataforma modela cada estabelecimento como vértice de um grafo espacial e conecta pares "
+            "dentro de um raio de proximidade geodésica, permitindo observar conectividade, isolamento e "
+            "concentração — sem reduzir a análise a um único indicador.",
+            style={'color': '#b7e4c7', 'maxWidth': '760px', 'lineHeight': '1.7', 'marginBottom': '24px'},
         ),
-        html.Div([stat(n_units, 'unidades'), stat(n_bairros, 'bairros'),
-                  stat(n_cats, 'categorias'), stat(chromatic_n, 'cores')],
+        html.Div([stat(n_units, 'estabelecimentos'), stat(n_geo, 'com geolocalização'),
+                  stat(n_bairros, 'bairros'), stat(n_cats, 'categorias')],
                  style={'display': 'flex', 'flexWrap': 'wrap'}),
     ], style={
         'background': ('radial-gradient(ellipse at 85% 10%, rgba(82,183,136,0.16), transparent 55%), '
@@ -52,10 +57,10 @@ def _hero():
 
 def _kpis():
     return html.Div([
-        kpi(n_units, 'Unidades de saúde mapeadas', C['primary']),
-        kpi(n_bairros, 'Bairros cobertos', C['secondary']),
-        kpi(f"{chromatic_n}", 'Número cromático (χ)', C['warn']),
-        kpi(n_cats, 'Categorias de serviço', C['accent']),
+        kpi(n_units, 'Estabelecimentos ativos mapeados', C['primary']),
+        kpi(n_geo, f'Com coordenada válida (raio padrão {DEFAULT_RADIUS_KM:g}km)', C['secondary']),
+        kpi(m_default['n_isolados'], f'Isolados a {DEFAULT_RADIUS_KM:g}km', C['warn']),
+        kpi(m_default['n_componentes'], 'Componentes conexos', C['accent']),
     ], style={'display': 'flex', 'flexWrap': 'wrap', 'gap': '16px', 'marginBottom': '4px'})
 
 
@@ -64,17 +69,18 @@ def _sobre_objetivos():
         html.Div([
             _section_title("Sobre o Projeto"),
             html.P(
-                "Esta pesquisa integra dados geoespaciais dos serviços de saúde pública do município "
-                "de Caxias-MA a técnicas computacionais de teoria dos grafos. A coloração de grafos, "
-                "técnica que atribui rótulos a vértices de modo que nenhum par adjacente compartilhe o "
-                "mesmo rótulo, é utilizada para identificar padrões de cobertura, conflitos de "
-                "proximidade e complementaridades na rede de atenção à saúde.",
+                "Pesquisa vinculada ao PIBITI 2025/2026 (IFMA Campus Caxias) que integra dados "
+                "geoespaciais dos serviços de saúde pública de Caxias-MA a técnicas de teoria dos "
+                "grafos. Cada estabelecimento vira um vértice; arestas conectam pares cuja distância "
+                "geodésica (haversine) fica dentro de um raio testado. A coloração cromática do grafo "
+                "é usada como uma lente adicional de leitura — não como veredito isolado sobre "
+                "qualidade da distribuição.",
                 style={'lineHeight': '1.7', 'color': C['txt2']},
             ),
             html.P(
-                "O dataset foi coletado e validado a partir do CNES/DATASUS e verificação in loco via "
-                "Google Maps, abrangendo UBS, hospitais, CAPS, UPA, SAMU, centros especializados, "
-                "ambulatórios e serviços de diagnóstico do município.",
+                "O dataset foi coletado por verificação in loco via Google Maps. Um estabelecimento "
+                "— a Policlínica de Caxias (CNES 2453908) — teve seus dados de carga horária, "
+                "profissionais e serviços complementados a partir da ficha oficial do CNES/DATASUS.",
                 style={'lineHeight': '1.7', 'color': C['txt2'], 'marginBottom': '0'},
             ),
         ], style={**card(), 'flex': '1', 'marginRight': '20px'}),
@@ -83,12 +89,12 @@ def _sobre_objetivos():
             _section_title("Objetivos"),
             html.Ul([
                 html.Li(t, style={'marginBottom': '8px'}) for t in [
-                    "Mapear e catalogar serviços de saúde de Caxias-MA com coordenadas geográficas validadas",
-                    f"Modelar a distribuição como grafo de proximidade (threshold {THRESHOLD_KM:g} km)",
-                    "Aplicar algoritmos de coloração para análise de conflitos e cobertura",
-                    "Identificar gaps e redundâncias na rede de atenção à saúde",
-                    "Comparar abordagens distintas de abstração e visualização de redes de saúde",
-                    "Disponibilizar visualizações interativas para apoio à gestão em saúde pública",
+                    "Mapear e limpar os dados de estabelecimentos de saúde de Caxias-MA",
+                    "Modelar a distribuição espacial como grafo de proximidade geodésica",
+                    f"Testar múltiplos raios de conexão ({', '.join(f'{r:g}km' for r in RADII_KM)}) "
+                    "e comparar suas métricas de conectividade",
+                    "Aplicar coloração de grafos (greedy/DSATUR) como leitura complementar, nunca isolada",
+                    "Apontar, com linguagem cautelosa, possíveis vazios assistenciais",
                 ]
             ], style={'lineHeight': '1.8', 'color': C['txt2'], 'paddingLeft': '20px', 'margin': '0'}),
         ], style={**card(), 'flex': '1'}),
@@ -98,54 +104,55 @@ def _sobre_objetivos():
 def _metodologia():
     return html.Div([
         _section_title("Metodologia"),
-        html.Div([
-            step(1, "Coleta de Dados",
-                 "Levantamento geoespacial via CNES/DATASUS e Google Maps. "
-                 "Validação manual de coordenadas e categorização por tipo de serviço."),
-            step(2, "Construção do Grafo",
-                 f"Vértices = unidades de saúde; arestas = proximidade ≤ {THRESHOLD_KM:g}km (haversine). "
-                 "Grafo não-direcionado implementado com NetworkX."),
-            step(3, "Coloração Cromática",
-                 f"Algoritmo greedy (largest_first) determinou número cromático χ = {chromatic_n}. "
-                 "Cada cor representa um grupo de serviços sem conflito de adjacência."),
-            step(4, "Análise e Visualização",
-                 "Diagramas de Voronoi, grafos com force-layout e mapa interativo revelam "
-                 "cobertura por bairro, gaps e padrões topológicos da rede."),
-        ], style={'display': 'flex', 'flexWrap': 'wrap'}),
+        html.Ol([
+            html.Li([
+                html.Strong("Coleta e limpeza. "),
+                "Levantamento geoespacial via verificação em campo. Registros anulados/desativados "
+                "foram excluídos; estabelecimentos sem coordenada válida ficam fora do grafo mas "
+                "permanecem listados.",
+            ], style={'marginBottom': '10px', 'lineHeight': '1.7'}),
+            html.Li([
+                html.Strong("Construção do grafo espacial. "),
+                "Vértices = estabelecimentos com coordenada válida; arestas = distância haversine "
+                "≤ raio testado. Grafo não-direcionado, sem pesos artificiais.",
+            ], style={'marginBottom': '10px', 'lineHeight': '1.7'}),
+            html.Li([
+                html.Strong("Métricas por raio. "),
+                "Para cada raio (0,5 / 1 / 2 / 3 / 5 km): nº de vértices e arestas, grau médio, "
+                "vértices isolados, componentes conexos e coloração (greedy e DSATUR aproximado).",
+            ], style={'marginBottom': '10px', 'lineHeight': '1.7'}),
+            html.Li([
+                html.Strong("Interpretação cautelosa. "),
+                "A coloração por si só não indica se a distribuição é boa ou ruim — ela é cruzada "
+                "com isolamento, fragmentação em componentes e concentração geográfica antes de "
+                "qualquer leitura sobre \"vazio assistencial\".",
+            ], style={'marginBottom': '0', 'lineHeight': '1.7'}),
+        ], style={'color': C['txt2'], 'paddingLeft': '20px'}),
     ], style=card())
 
 
 def _glossario():
     termos = [
-        ("Número Cromático (χ)",
-         "Menor quantidade de cores necessárias para colorir os vértices de um grafo sem que "
-         "dois vértices adjacentes (conectados por uma aresta) recebam a mesma cor. Aqui, indica "
-         "quantos grupos de unidades podem operar simultaneamente sem conflito de proximidade."),
-        ("Grau de um vértice",
-         "Número de arestas conectadas a um vértice — no contexto do projeto, quantas outras "
-         "unidades de saúde estão dentro do raio de proximidade (threshold) de uma unidade."),
+        ("Vértice / Aresta",
+         "Cada estabelecimento de saúde é um vértice do grafo. Existe uma aresta entre dois "
+         "vértices quando a distância geodésica entre eles é menor ou igual ao raio testado."),
         ("Distância de Haversine",
-         "Fórmula que calcula a distância em linha reta entre dois pontos na superfície de uma "
-         "esfera a partir de suas coordenadas de latitude/longitude — usada para medir a "
-         "proximidade real entre unidades de saúde."),
-        ("Nó isolado",
-         "Unidade de saúde sem nenhuma vizinha dentro do raio de proximidade definido — candidata "
-         "a vazio assistencial ou área sem redundância de atendimento próximo."),
-        ("Diagrama de Voronoi",
-         "Tesselação do espaço em regiões (células), cada uma associada a um ponto de referência, "
-         "onde todo local dentro da célula está mais próximo daquele ponto do que de qualquer "
-         "outro — usada para estimar a área de influência natural de cada unidade."),
-        ("Coloração Greedy (gulosa)",
-         "Algoritmo que percorre os vértices em uma ordem e atribui a cada um a menor cor ainda "
-         "não usada por seus vizinhos já coloridos. Rápido, mas não garante o número cromático "
-         "mínimo teórico."),
-        ("DSATUR",
-         "Heurística de coloração que prioriza, a cada passo, o vértice com maior grau de "
-         "saturação (maior número de cores distintas já usadas entre seus vizinhos) — geralmente "
-         "produz colorações mais eficientes que a ordem simples por grau."),
-        ("Facility location",
-         "Classe de problemas de otimização que busca a melhor localização para instalar novos "
-         "recursos (ex.: uma nova UBS) de modo a maximizar a cobertura populacional."),
+         "Fórmula que calcula a distância em linha reta entre dois pontos na superfície da Terra "
+         "a partir de suas coordenadas de latitude/longitude."),
+        ("Grau de um vértice",
+         "Número de arestas conectadas a um vértice — quantos outros estabelecimentos estão "
+         "dentro do raio de proximidade considerado."),
+        ("Vértice isolado",
+         "Estabelecimento sem nenhum vizinho dentro do raio testado. É um candidato a "
+         "\"possível vazio assistencial\", não uma conclusão definitiva — depende do raio e do "
+         "contexto (ex.: UBS rural isolada pode ser normal para a região)."),
+        ("Componente conexo",
+         "Subconjunto de vértices que estão todos ligados entre si por algum caminho de arestas. "
+         "Um grafo com muitos componentes pequenos indica uma rede fragmentada nesse raio."),
+        ("Número cromático (χ) / Coloração",
+         "Menor quantidade de cores (greedy ou DSATUR aproximado) necessária para que nenhum par "
+         "de vértices adjacentes compartilhe cor. Aumenta com a densidade de conexões — não deve "
+         "ser lido isoladamente como indicador de qualidade da rede."),
     ]
     return html.Div([
         _section_title("Glossário de Termos"),
@@ -157,33 +164,6 @@ def _glossario():
                        'borderBottom': f"1px solid {C['line']}"})
             for termo, definicao in termos
         ], style={'display': 'flex', 'flexWrap': 'wrap', 'gap': '0 24px'}),
-    ], style=card())
-
-
-def _links_uteis():
-    links = [
-        ("CNES — Cadastro Nacional de Estabelecimentos de Saúde",
-         "Consulte a ficha oficial de qualquer unidade de saúde do Brasil.",
-         "http://cnes.datasus.gov.br"),
-        ("Meu SUS Digital",
-         "Aplicativo/portal oficial do Ministério da Saúde para acesso a carteira de vacinação, "
-         "histórico de atendimentos e agendamentos no SUS.",
-         "https://meusus.saude.gov.br"),
-        ("Repositório do Projeto (GitHub)",
-         "Código-fonte completo, dados e metodologia do Saúde Informada.",
-         "https://github.com"),
-    ]
-    return html.Div([
-        _section_title("Links Úteis"),
-        html.Div([
-            html.A([
-                html.Strong(titulo, style={'color': C['primary'], 'display': 'block', 'marginBottom': '4px'}),
-                html.Span(desc, style={'color': C['txt2'], 'fontSize': '0.86rem'}),
-            ], href=url, target='_blank', rel='noopener noreferrer', className='hover-card',
-               style={**card({'flex': '1', 'minWidth': '260px', 'marginBottom': '0',
-                              'textDecoration': 'none', 'display': 'block'})})
-            for titulo, desc, url in links
-        ], style={'display': 'flex', 'flexWrap': 'wrap', 'gap': '16px'}),
     ], style=card())
 
 
@@ -211,135 +191,31 @@ def _referencias():
     return html.Div([
         _section_title("Referências"),
         html.Div([
-            ref_item("AURENHAMMER, Franz; KLEIN, Rolf; LEE, Der-Tsai. ",
-                     "Voronoi Diagrams and Delaunay Triangulations.",
-                     " Singapore: World Scientific, 2013."),
-            ref_item("AYRES, J. R. C. M. ",
-                     "Organização das ações de atenção à saúde: modelos e práticas.",
-                     " Saúde e Sociedade, São Paulo, v. 18, p. 11-23, 2009. Disponível em: "
-                     "<https://www.scielo.br/j/sausoc/a/QZX9gH7KmdDvBpfDBSdRVFP/?lang=pt>. "
-                     "Acesso em: 7 mar. 2026."),
-            ref_item("BARBOSA, P. R.; CARVALHO, A. I. ",
-                     "Organização e funcionamento do SUS.",
-                     " Fortaleza: UECE, 2010. Disponível em: "
-                     "<https://cesad.ufs.br/ORBI/public/uploadCatalago/10491917022012Organizacao_e_"
-                     "Funcionamento_do_SUS_Aula_1.pdf>. Acesso em: 7 mar. 2026."),
-            ref_item("BLONDEL, V. D. et al. ",
-                     "Fast unfolding of communities in large networks.",
-                     " Journal of Statistical Mechanics: Theory and Experiment, v. 2008, n. 10, "
-                     "p. P10008, 2008. DOI: 10.1088/1742-5468/2008/10/P10008."),
-            ref_item("BRASIL. ",
-                     "Constituição da República Federativa do Brasil de 1988.",
-                     " Brasília: Presidência da República, 1988. Disponível em: "
-                     "<http://www.planalto.gov.br/ccivil_03/constituicao/constituicao.htm>. "
-                     "Acesso em: 13 mar. 2026."),
-            ref_item("BRASIL. ",
-                     "Lei nº 8.080, de 19 de setembro de 1990.",
-                     " Dispõe sobre as condições para a promoção, proteção e recuperação da "
-                     "saúde, a organização e o funcionamento dos serviços correspondentes e dá "
-                     "outras providências. Diário Oficial da União, Brasília, DF, 20 set. 1990."),
-            ref_item("BRASIL. ",
-                     "Portaria SAS/MS nº 511, de 29 de dezembro de 2000.",
-                     " Aprova a Norma de Classificação de Estabelecimentos de Saúde. Diário "
-                     "Oficial da União, Brasília, DF, 3 jan. 2001."),
-            ref_item("BRASIL. ",
-                     "Portaria nº 4.279, de 30 de dezembro de 2010.",
-                     " Estabelece diretrizes para a organização da Rede de Atenção à Saúde no "
-                     "âmbito do Sistema Único de Saúde (SUS). Diário Oficial da União, Brasília, "
-                     "DF, 31 dez. 2010."),
-            ref_item("BRASIL. ",
-                     "Meu SUS Digital.",
-                     " Brasília: Ministério da Saúde, 2025. Disponível em: "
-                     "<https://meususdigital.saude.gov.br/perfil/sobre-sus>. Acesso em: 7 mar. 2026."),
             ref_item("BRASIL. Ministério da Saúde. ",
                      "Cadastro Nacional de Estabelecimentos de Saúde (CNES).",
                      " Disponível em: <http://cnes.datasus.gov.br>. Acesso em: 5 jul. 2026."),
-            ref_item("CONSELHO REGIONAL DE MEDICINA DO ESTADO DA BAHIA (CREMEB). ",
-                     "Classificação dos Estabelecimentos de Saúde.",
-                     " Salvador: CREMEB, s.d. Disponível em: "
-                     "<https://www.cremeb.org.br/index.php/classificacao-dos-estabelecimentos-de-saude>. "
-                     "Acesso em: 7 mar. 2026."),
-            ref_item("DABIRE, Inoussa et al. ",
-                     "Health Centers Network Analysis with Gephi and ForceAtlas2.",
-                     " 2025."),
-            ref_item("DANTAS, M. N. P.; SOUZA, D. L. B. de; SOUZA, A. M. G. de; AIQUOC, K. M.; "
-                     "SOUZA, T. A. de; BARBOSA, I. R. ",
-                     "Fatores associados ao acesso precário aos serviços de saúde no Brasil.",
-                     " Revista Brasileira de Epidemiologia, v. 24, 2021. Disponível em: "
-                     "<https://www.scielo.br/j/rbepid/a/Z4sYgLBvFbJqhXGgQ7Cdkbc/>. Acesso em: 26 mar. 2025."),
-            ref_item("FOLIUM DEVELOPMENT TEAM. ",
-                     "folium: Python data, leaflet.js maps.",
-                     " Version [atual]. Disponível em: <https://python-visualization.github.io/folium>. "
-                     "Acesso em: 13 mar. 2026."),
-            ref_item("HAMADA, R. K. F. et al. ",
-                     "Conhecendo o sistema único de saúde: um olhar da população.",
-                     " Revista APS, v. 21, n. 4, p. 504-515, 2018. Disponível em: "
-                     "<https://pesquisa.bvsalud.org/portal/resource/pt/biblio-1102557>. "
-                     "Acesso em: 7 mar. 2026."),
             ref_item("JENSEN, Tommy R.; TOFT, Bjarne. ",
                      "Graph Coloring Problems.",
                      " New York: Wiley-Interscience, 1995."),
-            ref_item("LA FORGIA, G. M.; COUTTOLENC, B. F. ",
-                     "Desempenho hospitalar no Brasil: em busca da excelência.",
-                     " São Paulo: Singular, 2009."),
             ref_item("LEWIS, R. ",
                      "A Guide to Graph Colouring: Algorithms and Applications.",
                      " 2. ed. Cham: Springer, 2021."),
-            ref_item("LEWIS, Rhyd. ",
-                     "Graph Colouring: A Visual Tour.",
-                     " arXiv, 2026. Disponível em: <https://arxiv.org/>. Acesso em: 5 jul. 2026."),
-            ref_item("MARCELO, T. G. et al. ",
-                     "Superlotação das unidades de pronto atendimento – um desafio da atenção "
-                     "básica: uma revisão bibliográfica.",
-                     " Ensaios USF, v. 1, n. 1, p. 1-10, 2022. Disponível em: "
-                     "<https://ensaios.usf.emnuvens.com.br/ensaios/article/download/167/109/686>. "
-                     "Acesso em: 7 mar. 2026."),
-            ref_item("MARX, Daniel. Graph Coloring Problems and Their Applications in Scheduling. ",
-                     "Periodica Polytechnica Electrical Engineering,",
-                     " v. 48, n. 1-2, p. 11-16, 2004."),
             ref_item("NETWORKX DEVELOPMENT TEAM. ",
                      "NetworkX – a Python package for the creation, manipulation, and study of "
                      "the structure, dynamics, and functions of complex networks.",
                      " Version [atual]. Disponível em: <https://networkx.org>. Acesso em: 13 mar. 2026."),
-            ref_item("OKABE, Atsuyuki et al. ",
-                     "Spatial Tessellations: Concepts and Applications of Voronoi Diagrams.",
-                     " 2. ed. Chichester: John Wiley & Sons, 2000."),
             ref_item("PANDAS DEVELOPMENT TEAM. ",
                      "pandas: powerful data analysis tools for Python.",
                      " Version [atual]. Disponível em: <https://pandas.pydata.org>. "
                      "Acesso em: 13 mar. 2026."),
-            ref_item("PASSADOR, C. S. ",
-                     "Mapa da saúde pública no Brasil: regionalização e o ranking de eficiência "
-                     "no Sistema Único de Saúde (SUS).",
-                     " Brasília: Enap, 2021. Disponível em: "
-                     "<https://repositorio.enap.gov.br/bitstream/1/6227/1/78_Claudia%20Passador_"
-                     "final_compressed.pdf>. Acesso em: 7 mar. 2026."),
-            ref_item("SOARES, G. B. ",
-                     "Organizações Sociais de Saúde (OSS): Privatização da Gestão de Serviços de "
-                     "Saúde ou Solução Gerencial para o SUS?",
-                     " Revista de Gestão em Sistemas de Saúde, v. 5, n. 2, p. 105-119, 2016. "
-                     "Disponível em: <https://periodicos.unb.br/index.php/rgs/article/download/3547/3231>. "
-                     "Acesso em: 7 mar. 2026."),
-            ref_item("SOUZA, M. C.; GUIMARÃES, A. P. M. ",
-                     "O ensino da saúde na educação básica: desafios e possibilidades.",
-                     " In: ENCONTRO NACIONAL DE PESQUISA EM EDUCAÇÃO EM CIÊNCIAS, 11., 2017, "
-                     "Florianópolis. Anais... Florianópolis: UFSC, 2017. Disponível em: "
-                     "<https://www.researchgate.net/publication/324595117>. Acesso em: 7 mar. 2026."),
-            ref_item("TEIXEIRA, C. F. (Org.). ",
-                     "Planejamento em saúde: conceitos, métodos e experiências.",
-                     " Salvador: EDUFBA, 2010. Disponível em: "
-                     "<https://repositorio.ufba.br/bitstream/ri/6719/1/Teixeira,%20Carmen.%20Livro%20"
-                     "Planejamento%20em%20saude.pdf>. Acesso em: 7 mar. 2026."),
-            ref_item("UNIVERSIDADE DE SÃO PAULO. ",
-                     "Algoritmos para grafos: coloração de vértices.",
-                     " Disponível em: <https://www.ime.usp.br/~pf/algoritmos_para_grafos/aulas/"
-                     "vertex-coloring.html>. Acesso em: 26 mar. 2025."),
-            ref_item("ZENI, C. T.; KOPROSKI, K. Y. A. ",
-                     "O conhecimento da população referente ao Sistema Único de Saúde: uma "
-                     "análise de dados.",
-                     " Revista Multidisciplinar em Saúde, v. 2, n. 4, p. 124, 2021. Disponível em: "
-                     "<https://editoraime.com.br/revistas/index.php/rems/article/view/2884>. "
-                     "Acesso em: 7 mar. 2026."),
+            ref_item("FOLIUM DEVELOPMENT TEAM. ",
+                     "folium: Python data, leaflet.js maps.",
+                     " Version [atual]. Disponível em: <https://python-visualization.github.io/folium>. "
+                     "Acesso em: 13 mar. 2026."),
+            ref_item("DANTAS, M. N. P.; SOUZA, D. L. B. de; SOUZA, A. M. G. de; AIQUOC, K. M.; "
+                     "SOUZA, T. A. de; BARBOSA, I. R. ",
+                     "Fatores associados ao acesso precário aos serviços de saúde no Brasil.",
+                     " Revista Brasileira de Epidemiologia, v. 24, 2021."),
         ], style={'color': C['txt2']}),
     ], style=card())
 
@@ -352,7 +228,6 @@ def layout():
             _sobre_objetivos(),
             _metodologia(),
             _glossario(),
-            _links_uteis(),
             _agradecimentos(),
             _referencias(),
         ], style={'padding': '28px 40px', 'maxWidth': '1400px', 'margin': '0 auto',

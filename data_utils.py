@@ -1,174 +1,81 @@
-"""Carga e preparação de dados: unidades de saúde (CSV de coleta primária),
-população oficial (IBGE), demanda assistencial (SIA/DATASUS ou estimativa
-MS) e dados de referência do estudo de caso da Policlínica (CNES).
+"""Carga e limpeza dos dados: estabelecimentos de saúde (CSV de coleta
+primária, georreferenciado) e ficha CNES da Policlínica de Caxias.
 
-Todo o módulo é executado uma única vez na importação: os DataFrames e
-dicts resultantes (`df`, `POPULATION`, `DEMANDA`, ...) são o estado
-"base" do app, reaproveitado por graph_utils e pelas abas.
+Todo o módulo é executado uma única vez na importação: os DataFrames
+resultantes (`df_all`, `df_geo`) são o estado "base" do app, reaproveitado
+por graph_utils e pelas abas.
+
+Regras de limpeza aplicadas (decisões documentadas, sem inventar dados):
+- Registros marcados como "(ANULADO)" no nome são excluídos por completo:
+  representam serviço desativado, não uma lacuna de geolocalização.
+- Registros sem coordenada válida (`NULL` na coleta) são mantidos na
+  listagem de estabelecimentos, mas ficam fora do grafo espacial
+  (não há como calcular distância sem coordenada) — sinalizados por
+  `geo_valid=False`.
 """
-import gzip
-import json
 import re
-import urllib.request
 from pathlib import Path
 
 import pandas as pd
 
-from colors import COORD_LAT_RANGE, COORD_LON_RANGE, TIPO_SERVICO, CONSULTAS_HAB_ANO, CAPACIDADE_UNIDADE_MES
+from colors import COORD_LAT_RANGE, COORD_LON_RANGE
 
 CSV_PATH = Path("Coleta Geolocalizacional de Dados Saúde Informada .csv")
 
-# ──────────────────────────────────────────────────────────
-# POPULAÇÃO POR BAIRRO (estimativa calibrada pela coleta primária)
-# ──────────────────────────────────────────────────────────
-POPULATION = {
-    'Centro': 18000, 'Cohab': 12000, 'Cohab II': 8000,
-    'Nova Caxias': 9000, 'Castelo Branco': 7500, 'Pampulha': 7000,
-    'Vila Paraiso': 5500, 'Sao Francisco': 6000, 'Vila Alecrim': 5000,
-    'Santa Rita': 5500, 'Antenor Viana': 4500, 'Baixinha': 4000,
-    'Salobro': 4000, 'Vila Sao Jose': 5000, 'Piraja': 4500,
-    'Piquezeiro': 3500, 'Cangalheiro': 4000, 'Campo de Belem': 3500,
-    'Campo de Belem II': 3000, 'Caldeiroes': 3500, 'Ponte': 3000,
-    'Fazendinha': 3000, 'Mutirao': 4500, 'Trezidela': 3500,
-    'Vila Arias': 4000, 'Luiza Queiroz': 3500, 'Itapecuruzinho': 3000,
-    'Eugenio Coutinho': 3500, 'Bom Jesus': 3500, 'Buenos Aires': 2500,
-    'Volta Redonda': 3500, 'Buriti Corrente': 1800, 'Chapada': 1500,
-    'Breinho': 2000, 'Rodagem': 1500, 'Nazare do Bruno': 1800,
-    'Caxirimbu': 1200, 'Povoado Santo Antonio': 1500,
-    'Povoado Caxirimbu': 1000, 'Bau': 800,
-}
 
 # ──────────────────────────────────────────────────────────
-# INTEGRAÇÃO IBGE — POPULAÇÃO OFICIAL (Censo 2022 + estimativas)
-# ──────────────────────────────────────────────────────────
-IBGE_MUN_CODE = '2103000'   # Caxias-MA
-IBGE_CACHE = Path('ibge_cache.json')
-POP_CENSO_2022_FALLBACK = 156973   # Censo Demográfico 2022 (agregado 4709)
-
-IBGE_URLS = {
-    'censo_2022': ('https://servicodados.ibge.gov.br/api/v3/agregados/4709/'
-                   f'periodos/2022/variaveis/93?localidades=N6%5B{IBGE_MUN_CODE}%5D'),
-    'estimativa': ('https://servicodados.ibge.gov.br/api/v3/agregados/6579/'
-                   f'periodos/-1/variaveis/9324?localidades=N6%5B{IBGE_MUN_CODE}%5D'),
-}
-
-
-def fetch_ibge_population():
-    """Busca a população oficial de Caxias-MA na API de agregados do IBGE
-    (Censo 2022 e estimativa populacional mais recente). Grava cache local
-    para funcionamento offline; em último caso usa o valor do Censo 2022."""
-    info = {}
-    try:
-        for key, url in IBGE_URLS.items():
-            req = urllib.request.Request(url, headers={'User-Agent': 'saude-informada/1.0'})
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                raw = resp.read()
-            if raw[:2] == b'\x1f\x8b':   # resposta comprimida (gzip)
-                raw = gzip.decompress(raw)
-            data = json.loads(raw.decode())
-            serie = data[0]['resultados'][0]['series'][0]['serie']
-            ano, valor = sorted(serie.items())[-1]
-            info[key] = int(valor)
-            if key == 'estimativa':
-                info['ano_estimativa'] = ano
-        info['fonte'] = 'API IBGE (online)'
-        IBGE_CACHE.write_text(json.dumps(info, ensure_ascii=False))
-    except Exception:
-        if IBGE_CACHE.exists():
-            info = json.loads(IBGE_CACHE.read_text())
-            info['fonte'] = 'API IBGE (cache local)'
-        else:
-            info = {'censo_2022': POP_CENSO_2022_FALLBACK,
-                     'estimativa': POP_CENSO_2022_FALLBACK,
-                     'ano_estimativa': '2022', 'fonte': 'Censo 2022 (offline)'}
-    return info
-
-
-IBGE = fetch_ibge_population()
-POP_OFICIAL = IBGE.get('estimativa', POP_CENSO_2022_FALLBACK)
-
-# Calibra as estimativas manuais por bairro para que a soma corresponda
-# à população oficial do município (a malha por bairro não é publicada
-# via API; o rateio preserva as proporções da coleta primária).
-_scale = POP_OFICIAL / sum(POPULATION.values())
-POPULATION = {b: int(round(p * _scale)) for b, p in POPULATION.items()}
-
-# ──────────────────────────────────────────────────────────
-# DEMANDA ASSISTENCIAL (SIA/DATASUS ou estimativa MS)
-# ──────────────────────────────────────────────────────────
-# Se existir um arquivo 'demanda_sia.csv' (export do TabNet/SIA com colunas
-# Bairro, Atendimentos_Mes, Taxa_Ocupacao, Fila_Espera), ele é usado como
-# fonte real. Na ausência, a demanda é estimada por parâmetros assistenciais
-# do Ministério da Saúde (Portaria 1.631/2015: ~2,8 consultas/hab/ano).
-DEMANDA_CSV = Path('demanda_sia.csv')
-
-
-def build_demanda(pop_dict, unidades_por_bairro):
-    if DEMANDA_CSV.exists():
-        d = pd.read_csv(DEMANDA_CSV)
-        d = d.set_index('Bairro')
-        return {
-            b: dict(atend=int(r['Atendimentos_Mes']),
-                    ocup=float(r['Taxa_Ocupacao']),
-                    fila=int(r['Fila_Espera']))
-            for b, r in d.iterrows()
-        }, 'SIA/DATASUS (demanda_sia.csv)'
-    demanda = {}
-    for bairro, pop in pop_dict.items():
-        atend = pop * CONSULTAS_HAB_ANO / 12
-        cap = max(1, unidades_por_bairro.get(bairro, 0)) * CAPACIDADE_UNIDADE_MES
-        ocup = atend / cap * 100
-        fila = max(0, atend - cap)
-        demanda[bairro] = dict(atend=int(round(atend)),
-                                ocup=round(ocup, 1),
-                                fila=int(round(fila)))
-    return demanda, 'Estimativa (parâmetros assistenciais MS)'
-
-
-# ──────────────────────────────────────────────────────────
-# UNIDADES DE SAÚDE (coleta primária georreferenciada)
+# ESTABELECIMENTOS DE SAÚDE (coleta primária georreferenciada)
 # ──────────────────────────────────────────────────────────
 def parse_coord(s):
-    if pd.isna(s) or str(s).strip() in ('NULL', ''):
+    if pd.isna(s) or str(s).strip().upper() in ('NULL', ''):
         return None
     m = re.search(r'-?\d+\.?\d*,\s*-?\d+\.?\d*', str(s))
-    if m:
-        lat, lon = map(float, m.group(0).split(','))
-        lat_min, lat_max = COORD_LAT_RANGE
-        lon_min, lon_max = COORD_LON_RANGE
-        if lat_min < lat < lat_max and lon_min < lon < lon_max:
-            return (lat, lon)
+    if not m:
+        return None
+    lat, lon = map(float, m.group(0).split(','))
+    lat_min, lat_max = COORD_LAT_RANGE
+    lon_min, lon_max = COORD_LON_RANGE
+    if lat_min < lat < lat_max and lon_min < lon < lon_max:
+        return (lat, lon)
     return None
 
 
-def load_unidades():
-    """Carrega o CSV de coleta primária, valida coordenadas e enriquece
-    com o Tipo de serviço (Emergencial / Não-Emergencial)."""
+def load_estabelecimentos():
+    """Carrega o CSV de coleta primária e aplica a limpeza documentada
+    no docstring do módulo."""
     if not CSV_PATH.exists():
         raise FileNotFoundError(
             f"Arquivo de dados não encontrado: '{CSV_PATH}'. Verifique se o "
             "CSV de coleta geolocalizacional está na raiz do projeto."
         )
-    df_raw = pd.read_csv(CSV_PATH)
-    df_raw['coord'] = df_raw['Coordenada de Localização'].apply(parse_coord)
-    df_out = df_raw.dropna(subset=['coord']).reset_index(drop=True)
-    df_out['Tipo'] = df_out['Categoria'].map(TIPO_SERVICO).fillna('Não-Emergencial')
-    return df_out
+    raw = pd.read_csv(CSV_PATH)
+    raw['Nome'] = raw['Nome'].str.strip()
+    raw['Bairro'] = raw['Bairro'].str.strip()
+    raw['Categoria'] = raw['Categoria'].str.strip()
+
+    # exclui registros anulados/desativados (não são lacuna de dado)
+    ativo = ~raw['Nome'].str.contains('ANULADO', case=False, na=False)
+    out = raw.loc[ativo].drop(columns=['Localização no Google Maps']).reset_index(drop=True)
+
+    out['coord'] = out['Coordenada de Localização'].apply(parse_coord)
+    out['geo_valid'] = out['coord'].notna()
+    return out
 
 
-df = load_unidades()
-UNIDADES_POR_BAIRRO = df.groupby('Bairro').size().to_dict()
-DEMANDA, DEMANDA_FONTE = build_demanda(POPULATION, UNIDADES_POR_BAIRRO)
-CAT_BY_NOME = df.set_index('Nome')['Categoria'].to_dict()
+df_all = load_estabelecimentos()                 # todos os estabelecimentos ativos (75)
+df_geo = df_all[df_all['geo_valid']].reset_index(drop=True)   # com coordenada válida → usado no grafo
+CATEGORIAS = sorted(df_all['Categoria'].unique())
 
 # ──────────────────────────────────────────────────────────
-# ESTUDO DE CASO — AMBULATÓRIO ESPECIALIZADO DE CAXIAS (CNES 2453908)
-# Fonte: Ficha de Estabelecimento CNES/DATASUS, emitida em 28/11/2025
+# FICHA CNES — AMBULATÓRIO ESPECIALIZADO DE CAXIAS / POLICLÍNICA
+# (CNES 2453908, emitida 28/11/2025 — mesmo endereço/coordenada do
+# registro "POLICLINICA DE CAXIAS" no CSV de coleta)
 # ──────────────────────────────────────────────────────────
-POLI_NOME = 'AMBULATORIO ESPECIALIZADO DE CAXIAS'
+POLI_NOME_CSV = 'POLICLINICA DE CAXIAS'   # Nome como aparece no CSV de coleta
 POLI_CNES = '2453908'
 
 POLI_INFO = {
+    'nome_fantasia_cnes': 'AMBULATORIO ESPECIALIZADO DE CAXIAS',
     'endereco': 'Rua Quininha Pires, 105 - Centro, Caxias-MA · CEP 65602-720 · Tel. (99) 98521-3410',
     'tipo': 'Policlínica · Administração Pública (Prefeitura Municipal de Caxias) · Gestão Municipal · Unidade Auxiliar de Ensino',
     'servicos': ['Oftalmologia (diagnóstico, trat. clínico e cirúrgico)',
@@ -261,7 +168,15 @@ df_poli['Especialidade'] = (df_poli['Funcao']
                              .str.replace('Médico em ', '', regex=False)
                              .str.replace('Médico ', '', regex=False))
 
-df_med = df_poli[df_poli['Medico']].copy()
-TOTAL_H_MEDICAS = int(df_med['CH_Total'].sum())
-N_ESPECIALIDADES = df_med['Especialidade'].nunique()
-N_EQUIPAMENTOS = sum(q for _, q in POLI_EQUIPAMENTOS)
+# Agregado por especialidade/função: nº de profissionais e soma de CH.
+POLI_RESUMO_ESPECIALIDADES = (
+    df_poli.groupby('Especialidade')
+    .agg(n_profissionais=('Nome', 'count'), ch_total=('CH_Total', 'sum'))
+    .reset_index()
+    .sort_values('ch_total', ascending=False)
+    .to_dict('records')
+)
+
+POLI_N_PROFISSIONAIS = len(df_poli)
+POLI_N_MEDICOS = int(df_poli['Medico'].sum())
+POLI_N_ESPECIALIDADES_MEDICAS = df_poli.loc[df_poli['Medico'], 'Especialidade'].nunique()

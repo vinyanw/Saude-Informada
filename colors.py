@@ -1,8 +1,5 @@
-"""Design system: paleta de cores e constantes geográficas/regulatórias
-compartilhadas por todos os módulos do app.
-
-Fonte única de verdade para valores antes hardcoded em múltiplos pontos
-do app.py original (centro do mapa, limite PNAB, thresholds de grafo).
+"""Design system: paleta de cores e constantes geográficas compartilhadas
+por todos os módulos do app.
 """
 
 # ──────────────────────────────────────────────────────────
@@ -45,22 +42,6 @@ CAT_COLORS = {
     "Clínica Especializada":       "#b7e4c7",
 }
 
-TIPO_SERVICO = {
-    "UBS":                         "Não-Emergencial",
-    "UPA":                         "Emergencial",
-    "SAMU":                        "Emergencial",
-    "Hospital":                    "Emergencial",
-    "Maternidade":                 "Emergencial",
-    "CAPS":                        "Não-Emergencial",
-    "CAPS / Acolhimento":          "Não-Emergencial",
-    "Centro Especializado":        "Não-Emergencial",
-    "Ambulatório / Especializado": "Não-Emergencial",
-    "Policlínica / Ambulatório":   "Não-Emergencial",
-    "Diagnóstico":                 "Não-Emergencial",
-    "Ambulatório":                 "Não-Emergencial",
-    "Clínica Especializada":       "Não-Emergencial",
-}
-
 FOLIUM_CAT_COLORS = {
     "UBS": "blue", "UPA": "red", "SAMU": "orange",
     "Hospital": "darkred", "Maternidade": "pink",
@@ -80,25 +61,12 @@ CHROM_PALETTE = [
 # ──────────────────────────────────────────────────────────
 # GEOGRAFIA — CAXIAS-MA
 # ──────────────────────────────────────────────────────────
-MAP_CENTER = (-4.865, -43.36)          # centro usado por make_map, fig_voronoi, fig_scen_map
-COORD_LAT_RANGE = (-5.5, -4.5)         # validação de coordenadas coletadas (parse_coord)
+MAP_CENTER = (-4.865, -43.36)
+COORD_LAT_RANGE = (-5.5, -4.5)   # validação de coordenadas coletadas (parse_coord)
 COORD_LON_RANGE = (-44.0, -42.5)
 
 # ──────────────────────────────────────────────────────────
-# GRAFO DE PROXIMIDADE
+# GRAFO DE PROXIMIDADE ESPACIAL
 # ──────────────────────────────────────────────────────────
-THRESHOLD_KM = 1.0                     # threshold padrão do grafo global
-THRESHOLDS_KM = [1.0, 2.0, 5.0]        # opções expostas no slider/radio de grafos e mapa
-RAIO_ACESSO_KM = 2.0                   # raio usado no índice de acessibilidade (~30 min a pé)
-
-# ──────────────────────────────────────────────────────────
-# PARÂMETROS ASSISTENCIAIS (PNAB — Política Nacional de Atenção Básica)
-# ──────────────────────────────────────────────────────────
-PNAB_LIMITE_ATENCAO = 4000    # hab. de influência por UBS acima do qual soa alerta "atenção"
-PNAB_LIMITE_CRITICO = 8000    # hab. de influência por UBS acima do qual soa alerta "crítico"
-
-# ──────────────────────────────────────────────────────────
-# ESTIMATIVA DE DEMANDA (Portaria MS 1.631/2015, fallback sem SIA/DATASUS)
-# ──────────────────────────────────────────────────────────
-CONSULTAS_HAB_ANO = 2.8
-CAPACIDADE_UNIDADE_MES = 704   # 4 atend/h × 8h × 22 dias úteis
+RADII_KM = [0.5, 1.0, 2.0, 3.0, 5.0]   # raios testados para a construção do grafo
+DEFAULT_RADIUS_KM = 2.0                 # raio padrão exibido no mapa/análise

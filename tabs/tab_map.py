@@ -1,176 +1,113 @@
-"""Aba 2 — Mapa Interativo.
+"""Aba 2 — Mapa.
 
-Mapa Folium com filtros por categoria/tipo/busca, slider de raio de
-proximidade (1-5 km, controla a camada de conexões do grafo), clustering
-de marcadores e camada de heatmap de densidade.
+Mapa Folium com filtro de categoria, filtro de raio de proximidade
+(0.5/1/2/3/5 km, controla a camada de conexões do grafo) e marcadores
+coloridos pela coloração cromática do grafo naquele raio.
 """
 import folium
 from dash import Input, Output, dcc, html
-from folium import plugins
 
-from colors import C, CAT_COLORS, MAP_CENTER
+from colors import C, CAT_COLORS, CHROM_PALETTE, MAP_CENTER, RADII_KM
 from components import card
-from data_utils import POLI_CNES, POLI_NOME, TOTAL_H_MEDICAS, N_ESPECIALIDADES, df
-from graph_utils import build_graph, coloring
+from data_utils import POLI_CNES, POLI_NOME_CSV, df_all, df_geo
+from graph_utils import build_graph, colorir_greedy
 
-all_cats = sorted(df['Categoria'].unique())
+ALL_CATS = sorted(df_all['Categoria'].unique())
 
 
-def make_map(cats=None, tipo_filter='Todos', busca='', raio_km=1.0,
-             cluster=False, heatmap=False):
+def make_map(cats, raio_km):
     m = folium.Map(location=list(MAP_CENTER), zoom_start=13, tiles="CartoDB positron")
-    data = df.copy()
-    if cats is not None:
-        data = data[data['Categoria'].isin(cats)]
-    if tipo_filter != 'Todos':
-        data = data[data['Tipo'] == tipo_filter]
-    if busca:
-        data = data[data['Nome'].str.contains(busca, case=False, na=False) |
-                    data['Categoria'].str.contains(busca, case=False, na=False)]
-    node_set = set(data['Nome'])
+    data = df_geo[df_geo['Categoria'].isin(cats)] if cats else df_geo.iloc[0:0]
 
-    # control=False: a filtragem por categoria acontece no Dash (checklist),
-    # que refaz o mapa filtrando nós E arestas juntos — o LayerControl do
-    # folium só esconderia os marcadores, deixando as arestas órfãs.
-    feature_groups = {}
-    for cat in data['Categoria'].unique():
-        feature_groups[cat] = folium.FeatureGroup(name=cat, show=True, control=False)
+    G = build_graph(data, raio_km) if len(data) >= 2 else None
+    col, _ = colorir_greedy(G) if G is not None else ({}, 0)
 
-    marker_target = {}
-    if cluster:
-        cluster_group = plugins.MarkerCluster(name='Clusters')
-        for cat in feature_groups:
-            marker_target[cat] = cluster_group
-    else:
-        marker_target = feature_groups
-        cluster_group = None
+    edge_group = folium.FeatureGroup(name=f'Conexões (≤ {raio_km:g}km)', show=True)
+    if G is not None:
+        for u, v in G.edges():
+            lat1, lon1 = G.nodes[u]['pos']
+            lat2, lon2 = G.nodes[v]['pos']
+            folium.PolyLine([[lat1, lon1], [lat2, lon2]],
+                             weight=1.5, color='#40916c', opacity=0.45).add_to(edge_group)
+    edge_group.add_to(m)
 
-    edge_group = folium.FeatureGroup(name=f'Conexões (arestas ≤ {raio_km:g}km)', show=False)
-
+    node_group = folium.FeatureGroup(name='Estabelecimentos', show=True)
     for _, r in data.iterrows():
         lat, lon = r['coord']
-        cat = r['Categoria']
-        tipo = r['Tipo']
-        tipo_color = '#e76f51' if tipo == 'Emergencial' else '#2d6a4f'
+        cor_idx = col.get(r['Nome'], None)
+        cor_hex = CHROM_PALETTE[cor_idx % len(CHROM_PALETTE)] if cor_idx is not None else '#adb5bd'
+        isolado = G is not None and G.degree(r['Nome']) == 0
         popup = (
             f"<div style='font-family:Inter,Helvetica,Arial,sans-serif;min-width:200px'>"
             f"<b style='color:#1b4332'>{r['Nome']}</b><br>"
             f"<span style='color:#2d6a4f'>Bairro:</span> {r['Bairro']}<br>"
-            f"<span style='color:#2d6a4f'>Categoria:</span> {cat}<br>"
-            f"<span style='color:#2d6a4f'>Tipo:</span> "
-            f"<b style='color:{tipo_color}'>{tipo}</b><br>"
-            f"<span style='color:#2d6a4f'>Cor cromática:</span> {coloring.get(r['Nome'], 'N/A')}"
+            f"<span style='color:#2d6a4f'>Categoria:</span> {r['Categoria']}<br>"
+            f"<span style='color:#2d6a4f'>Grau (raio {raio_km:g}km):</span> "
+            f"{G.degree(r['Nome']) if G is not None else 0}<br>"
+            + ("<span style='color:#e76f51'><b>Isolado neste raio</b></span><br>" if isolado else "")
+            + f"<span style='color:#2d6a4f'>Grupo cromático:</span> {cor_idx if cor_idx is not None else 'N/A'}"
             f"</div>"
         )
         folium.CircleMarker(
-            [lat, lon], radius=8, color='white', weight=1.5, fill=True,
-            fill_color=CAT_COLORS.get(cat, '#2d6a4f'), fill_opacity=0.9,
+            [lat, lon], radius=9 if isolado else 7,
+            color='#e76f51' if isolado else 'white', weight=2 if isolado else 1.5,
+            fill=True, fill_color=cor_hex, fill_opacity=0.9,
             popup=folium.Popup(popup, max_width=280), tooltip=r['Nome'],
-        ).add_to(marker_target[cat])
+        ).add_to(node_group)
+    node_group.add_to(m)
 
-    # Conexões recalculadas para o raio de proximidade selecionado no slider
-    Gr = build_graph(data, threshold=raio_km) if len(data) >= 2 else None
-    if Gr is not None:
-        for u, v in Gr.edges():
-            if u in node_set and v in node_set:
-                lat1, lon1 = Gr.nodes[u]['pos']
-                lat2, lon2 = Gr.nodes[v]['pos']
-                folium.PolyLine([[lat1, lon1], [lat2, lon2]],
-                                 weight=1.5, color='#40916c', opacity=0.4).add_to(edge_group)
-
-    if heatmap and len(data):
-        heat_group = folium.FeatureGroup(name='Mapa de Calor (densidade)', show=True)
-        plugins.HeatMap([[r['coord'][0], r['coord'][1]] for _, r in data.iterrows()],
-                         radius=18, blur=22).add_to(heat_group)
-        heat_group.add_to(m)
-
-    edge_group.add_to(m)
-    if cluster_group is not None:
-        cluster_group.add_to(m)
-    else:
-        for fg in feature_groups.values():
-            fg.add_to(m)
-
-    # Destaque do estudo de caso (CNES 2453908)
-    poli_row = df[df['Nome'] == POLI_NOME]
+    # Destaque da Policlínica (CNES 2453908)
+    poli_row = df_geo[df_geo['Nome'] == POLI_NOME_CSV]
     if not poli_row.empty:
         lat, lon = poli_row.iloc[0]['coord']
-        star_group = folium.FeatureGroup(name='★ Estudo de Caso da Policlínica', show=True)
+        star_group = folium.FeatureGroup(name='★ Policlínica (CNES)', show=True)
         folium.Marker(
             [lat, lon], icon=folium.Icon(color='darkgreen', icon='star', prefix='fa'),
-            tooltip=f"★ {POLI_NOME} (CNES {POLI_CNES}) Estudo de Caso",
+            tooltip=f"★ {POLI_NOME_CSV} (CNES {POLI_CNES})",
             popup=folium.Popup(
                 f"<div style='font-family:Inter,Helvetica,Arial,sans-serif;min-width:220px'>"
-                f"<b style='color:#1b4332'>★ {POLI_NOME}</b><br>"
+                f"<b style='color:#1b4332'>★ {POLI_NOME_CSV}</b><br>"
                 f"<span style='color:#2d6a4f'>CNES:</span> {POLI_CNES}<br>"
-                f"<span style='color:#2d6a4f'>Tipo:</span> Policlínica · Média Complexidade<br>"
-                f"<span style='color:#2d6a4f'>Horas médicas:</span> {TOTAL_H_MEDICAS}h/sem · "
-                f"{N_ESPECIALIDADES} especialidades<br>"
-                f"<i>Ver aba \"Estudo de Caso - Policlínica\"</i></div>", max_width=300),
+                f"<i>Ver detalhes na aba \"Lista de Estabelecimentos\"</i></div>", max_width=300),
         ).add_to(star_group)
         star_group.add_to(m)
 
     folium.LayerControl(collapsed=False).add_to(m)
-    plugins.Fullscreen().add_to(m)
     return m._repr_html_()
 
 
 def layout():
     return html.Div([
         html.Div([
-            # Sidebar de filtros
             html.Div([
                 html.H3("Filtros", style={
                     'color': C['primary'], 'marginTop': '0',
                     'borderBottom': f"1px solid {C['line']}", 'paddingBottom': '10px',
                     'borderLeft': f"3px solid {C['accent']}", 'paddingLeft': '12px', 'marginBottom': '16px',
                 }),
-                html.Label("Buscar unidade", style={'fontWeight': '600', 'color': C['primary'], 'fontSize': '0.88rem'}),
-                dcc.Input(
-                    id='map-busca', type='text', debounce=True,
-                    placeholder='ex.: UBS, CAPS, oftalmo…',
-                    style={'width': '100%', 'padding': '7px 10px', 'marginTop': '8px',
-                           'marginBottom': '16px', 'border': f"1px solid {C['line']}",
-                           'fontSize': '0.86rem', 'boxSizing': 'border-box'},
-                ),
                 html.Label("Categoria de Serviço", style={'fontWeight': '600', 'color': C['primary'], 'fontSize': '0.88rem'}),
                 dcc.Checklist(
                     id='map-cat',
-                    options=[{'label': f" {c}", 'value': c} for c in all_cats],
-                    value=all_cats,
+                    options=[{'label': f" {c}", 'value': c} for c in ALL_CATS],
+                    value=ALL_CATS,
                     style={'marginTop': '8px', 'marginBottom': '16px',
                            'fontSize': '0.84rem', 'color': C['txt2'],
                            'display': 'flex', 'flexDirection': 'column', 'gap': '4px'},
                 ),
-                html.Label("Tipo de Atendimento", style={'fontWeight': '600', 'color': C['primary'], 'fontSize': '0.88rem'}),
-                dcc.Dropdown(
-                    id='map-tipo',
-                    options=[
-                        {'label': 'Todos', 'value': 'Todos'},
-                        {'label': 'Emergencial', 'value': 'Emergencial'},
-                        {'label': 'Não-Emergencial', 'value': 'Não-Emergencial'},
-                    ],
-                    value='Todos', clearable=False, style={'marginTop': '8px', 'marginBottom': '20px'},
-                ),
                 html.Label("Raio de proximidade (conexões)", style={
                     'fontWeight': '600', 'color': C['primary'], 'fontSize': '0.88rem'}),
-                dcc.Slider(id='map-raio', min=1, max=5, step=1, value=1,
-                           marks={i: f'{i}km' for i in range(1, 6)},
-                           tooltip={'placement': 'bottom', 'always_visible': False}),
-                dcc.Checklist(
-                    id='map-camadas',
-                    options=[
-                        {'label': ' Agrupar marcadores (clustering)', 'value': 'cluster'},
-                        {'label': ' Mapa de calor (densidade)', 'value': 'heatmap'},
-                    ],
-                    value=[], style={'marginTop': '16px', 'marginBottom': '16px',
-                                     'fontSize': '0.84rem', 'color': C['txt2'],
-                                     'display': 'flex', 'flexDirection': 'column', 'gap': '6px'},
+                dcc.RadioItems(
+                    id='map-raio',
+                    options=[{'label': f' {r:g} km', 'value': r} for r in RADII_KM],
+                    value=2.0, inline=False,
+                    inputStyle={'marginRight': '6px'},
+                    style={'marginTop': '8px', 'marginBottom': '20px', 'color': C['txt2'],
+                           'display': 'flex', 'flexDirection': 'column', 'gap': '6px', 'fontSize': '0.86rem'},
                 ),
                 html.H4("Resumo", style={'color': C['primary'], 'borderBottom': f"1px solid {C['light']}",
                                          'paddingBottom': '8px', 'marginTop': '0'}),
                 html.Div(id='map-summary'),
-                html.H4("Legenda", style={'color': C['primary'], 'marginTop': '20px',
+                html.H4("Legenda de categorias", style={'color': C['primary'], 'marginTop': '20px',
                                           'borderBottom': f"1px solid {C['light']}", 'paddingBottom': '8px'}),
                 html.Div([
                     html.Div([
@@ -185,15 +122,20 @@ def layout():
                       'padding': '20px', 'overflowY': 'auto'},
                role='region', **{'aria-label': 'Filtros do mapa'}),
 
-            # Mapa
             html.Div([
-                html.Iframe(id='map-frame', srcDoc='', title='Mapa interativo de unidades de saúde',
+                html.Iframe(id='map-frame', srcDoc='', title='Mapa interativo de estabelecimentos de saúde',
                             style={'width': '100%', 'height': '100%', 'border': 'none'}),
             ], style={'flex': '1', 'height': '620px', 'border': f"1px solid {C['line']}",
                       'borderLeft': 'none', 'borderRadius': '0 14px 14px 0', 'overflow': 'hidden',
                       'backgroundColor': C['white']}),
-        ], style={'display': 'flex', 'marginBottom': '20px', 'height': '620px',
+        ], style={'display': 'flex', 'marginBottom': '12px', 'height': '620px',
                   'boxShadow': '0 8px 24px rgba(27,67,50,0.06)', 'borderRadius': '14px'}),
+        html.P(
+            "Marcadores com borda vermelha destacada indicam estabelecimentos isolados no raio "
+            "selecionado (sem nenhum vizinho ≤ raio). A cor de preenchimento reflete o grupo "
+            "cromático (coloração greedy) do grafo naquele raio — não é uma escala de qualidade.",
+            style={'color': C['txt2'], 'fontSize': '0.82rem', 'fontStyle': 'italic'},
+        ),
     ], style={'padding': '20px 40px', 'maxWidth': '1500px', 'margin': '0 auto'})
 
 
@@ -202,48 +144,23 @@ def register_callbacks(app):
         Output('map-frame', 'srcDoc'),
         Output('map-summary', 'children'),
         Input('map-cat', 'value'),
-        Input('map-tipo', 'value'),
-        Input('map-busca', 'value'),
         Input('map-raio', 'value'),
-        Input('map-camadas', 'value'),
     )
-    def update_map(cats, tipo, busca, raio, camadas):
-        busca = (busca or '').strip()
+    def update_map(cats, raio):
         cats = cats or []
-        camadas = camadas or []
-        fdf = df[df['Categoria'].isin(cats)]
-        if tipo != 'Todos':
-            fdf = fdf[fdf['Tipo'] == tipo]
-        if busca:
-            fdf = fdf[fdf['Nome'].str.contains(busca, case=False, na=False) |
-                      fdf['Categoria'].str.contains(busca, case=False, na=False)]
+        fdf = df_geo[df_geo['Categoria'].isin(cats)]
+        map_html = make_map(cats, raio)
 
-        map_html = make_map(cats, tipo, busca, raio_km=raio,
-                             cluster='cluster' in camadas, heatmap='heatmap' in camadas)
-
-        tipo_badge = None
-        if tipo != 'Todos':
-            badge_color = C['danger'] if tipo == 'Emergencial' else C['secondary']
-            tipo_badge = html.Div(tipo, style={
-                'backgroundColor': badge_color, 'color': 'white', 'fontSize': '0.72rem',
-                'fontWeight': '600', 'borderRadius': '999px', 'padding': '3px 10px',
-                'marginTop': '6px', 'display': 'inline-block'})
         summary = html.Div([
             html.Div([
                 html.Span(str(len(fdf)), style={'fontSize': '2rem', 'fontWeight': '700',
                                                  'color': C['primary'], 'display': 'block'}),
-                html.Span("unidades", style={'fontSize': '0.78rem', 'color': C['txt2']}),
-                tipo_badge,
+                html.Span("estabelecimentos exibidos", style={'fontSize': '0.78rem', 'color': C['txt2']}),
             ], style={'marginBottom': '10px'}),
             html.Div([
                 html.Span(str(fdf['Bairro'].nunique()), style={'fontSize': '1.5rem', 'fontWeight': '700',
                                                                 'color': C['secondary'], 'display': 'block'}),
                 html.Span("bairros", style={'fontSize': '0.78rem', 'color': C['txt2']}),
-            ], style={'marginBottom': '10px'}),
-            html.Div([
-                html.Span(str(fdf['Categoria'].nunique()), style={'fontSize': '1.5rem', 'fontWeight': '700',
-                                                                   'color': C['accent'], 'display': 'block'}),
-                html.Span("categorias", style={'fontSize': '0.78rem', 'color': C['txt2']}),
             ]),
         ])
         return map_html, summary

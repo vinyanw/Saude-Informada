@@ -1,8 +1,8 @@
 # Saúde Informada
 
-**Mapeamento e Análise dos Serviços de Saúde Pública em Caxias-MA**
+**Distribuição Espacial dos Serviços Públicos de Saúde de Caxias-MA via Teoria dos Grafos**
 
-Plataforma interativa que integra **dados geoespaciais validados** e **algoritmos de coloração de grafos** para revelar padrões de cobertura, redundâncias e lacunas na rede pública de saúde do município de Caxias-MA.
+Plataforma que modela os estabelecimentos de saúde pública de Caxias-MA como um grafo de proximidade geodésica, para evidenciar concentrações e possíveis vazios assistenciais na rede.
 
 ---
 
@@ -10,10 +10,10 @@ Plataforma interativa que integra **dados geoespaciais validados** e **algoritmo
 
 O **Saúde Informada** é um projeto de pesquisa vinculado ao **PIBITI 2025/2026** (Programa Institucional de Bolsas de Iniciação em Desenvolvimento Tecnológico e Inovação) do **IFMA Campus Caxias**.
 
-**Objetivo central:**  
-Desenvolver uma plataforma que utiliza **teoria de grafos** para analisar criticamente a distribuição espacial dos serviços de saúde pública, identificando desigualdades regionais, redundâncias e vazios assistenciais.
+**Pergunta central:**
+Como a distribuição espacial dos serviços públicos de saúde de Caxias-MA pode ser analisada por meio da teoria dos grafos e apresentada em uma plataforma informativa para evidenciar concentrações e possíveis vazios assistenciais?
 
-O dataset foi construído a partir de dados oficiais do **CNES/DATASUS**, complementados com **verificação in loco via Google Maps**, garantindo alta confiabilidade georreferenciada.
+O dataset principal foi construído por coleta primária georreferenciada (verificação in loco via Google Maps). Um estabelecimento — a Policlínica de Caxias (CNES 2453908) — teve seus dados de recursos (profissionais, carga horária, serviços, equipamentos) complementados a partir da ficha oficial do CNES/DATASUS.
 
 ---
 
@@ -27,48 +27,43 @@ O dataset foi construído a partir de dados oficiais do **CNES/DATASUS**, comple
 
 ---
 
-## ✨ Funcionalidades
+## Telas da Plataforma
 
-- **Mapa interativo** (Folium + Leaflet.js) com marcadores categorizados e controle de camadas
-- **Grafo de proximidade geográfica** (threshold de 2 km) com coloração cromática
-- **Visualização Force Layout** (Spring/ForceAtlas2) revelando topologia da rede
-- **Diagrama de Voronoi** – regiões de influência de cada unidade de saúde
-- **Coloração de grafos** para alocação otimizada de recursos (sem conflitos)
-- **Tabela de cobertura por bairro** com índice (unidades/1.000 hab.) e classificação
-- **Gráficos dinâmicos** (barras e pizza) filtráveis por tipo de serviço
+1. **Visão Geral** — pergunta central, objetivos, metodologia e glossário de termos
+2. **Mapa** — estabelecimentos, conexões do grafo e coloração cromática, com filtro de raio (0,5 a 5km) e categoria
+3. **Análise da Rede** — métricas de conectividade por raio (vértices, arestas, grau médio, isolados, componentes conexos, coloração) e interpretação cautelosa dos resultados
+4. **Lista de Estabelecimentos** — busca, detalhes de localização/categoria, estabelecimentos próximos e, para a Policlínica, o bloco de recursos extraído do CNES
 
 ---
 
-## 🛠️ Stack Tecnológica
+## Metodologia
 
-| Camada                    | Tecnologia                          | Versão     | Função |
-|--------------------------|-------------------------------------|------------|--------|
-| Framework Web            | **Dash (Plotly)** + Flask           | 2.x        | Dashboard interativo |
-| Visualização             | **Plotly** + **Folium**             | 5.x / 0.14 | Gráficos e mapas |
-| Análise de Grafos        | **NetworkX**                        | 3.x        | Grafo e coloração |
-| Geoprocessamento         | **SciPy (Voronoi)** + **haversine** | -          | Distância e regiões |
-| Processamento            | **Pandas** + **NumPy**              | 2.x / 1.24 | Dados e cálculos |
+- **Limpeza de dados**: registros anulados/desativados são excluídos; estabelecimentos sem coordenada válida ficam de fora do grafo mas permanecem listados.
+- **Grafo espacial**: cada estabelecimento com coordenada válida é um vértice; existe aresta entre dois vértices quando a distância geodésica (**Haversine**) entre eles é ≤ ao raio testado.
+- **Raios testados**: 0,5 / 1 / 2 / 3 / 5 km — para cada um são calculados nº de vértices/arestas, grau médio, vértices isolados, componentes conexos e coloração.
+- **Coloração de grafos**: `nx.greedy_color` com estratégias `largest_first` (greedy) e `saturation_largest_first` (aproximação de DSATUR).
+- **Interpretação**: a coloração isolada não indica se a distribuição é boa ou ruim — é sempre cruzada com isolamento, fragmentação em componentes e concentração geográfica, com linguagem cautelosa ("possível vazio assistencial").
+
+---
+
+## Stack Tecnológica
+
+| Camada                    | Tecnologia                          | Função |
+|--------------------------|---------------------------------------|--------|
+| Framework Web            | **Dash (Plotly)** + Flask             | Dashboard interativo |
+| Visualização             | **Folium**                            | Mapa interativo |
+| Análise de Grafos        | **NetworkX**                          | Grafo e coloração |
+| Geoprocessamento         | **SciPy (cKDTree)** + **haversine**    | Distância e pré-filtro de vizinhança |
+| Processamento            | **Pandas** + **NumPy**                | Dados e cálculos |
 
 **Linguagem:** Python 3.10+
 
 ---
 
-## Algoritmos e Métodos
-
-- **Distância Geodésica**: Fórmula de Haversine (threshold = 2 km)
-- **Coloração de Grafos**: `nx.greedy_color` com estratégia `largest_first`
-- **Layout de Rede**: `nx.spring_layout` (aproximação ForceAtlas2)
-- **Tesselação de Voronoi**: `scipy.spatial.Voronoi`
-- **Índice de Cobertura**: `(n_unidades / população) × 1000` por bairro
-
----
-
 ## Fontes de Dados
 
-- **CNES/DATASUS** (dados oficiais)
-- **Google Maps** + verificação de campo
-- **Coleta Geolocalizacional de Dados Saúde Informada.csv** (dataset principal)
-- Estimativas populacionais por bairro (IBGE)
+- Coleta primária georreferenciada (verificação em campo via Google Maps)
+- **CNES/DATASUS** — ficha da Policlínica de Caxias (CNES 2453908)
 
 **Categorias incluídas**: UBS, UPA, SAMU, Hospital, CAPS, Centros Especializados, Ambulatórios, Diagnóstico, etc.
 
@@ -80,3 +75,18 @@ O dataset foi construído a partir de dados oficiais do **CNES/DATASUS**, comple
 ```bash
 git clone https://github.com/seuusuario/saude-informada.git
 cd saude-informada
+```
+
+### 2. Instale as dependências
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 3. Rode a aplicação
+```bash
+python3 app.py
+```
+
+Acesse `http://127.0.0.1:8050`.

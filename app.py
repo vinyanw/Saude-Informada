@@ -11,16 +11,7 @@ import dash_bootstrap_components as dbc
 from dash import Input, Output, html
 
 from components import TAB_ACTIVE_STYLE, TAB_STYLE, app_footer, app_header
-from tabs import (
-    tab_case_study,
-    tab_coverage,
-    tab_education,
-    tab_gaps,
-    tab_graphs,
-    tab_map,
-    tab_overview,
-    tab_scenarios,
-)
+from tabs import tab_list, tab_map, tab_network, tab_overview
 
 app = dash.Dash(
     __name__,
@@ -32,14 +23,10 @@ app = dash.Dash(
 server = app.server
 
 TABS = [
-    ('overview',    'Visão Geral',                 tab_overview),
-    ('mapa',        'Mapa Interativo',              tab_map),
-    ('grafos',      'Análise de Grafos',            tab_graphs),
-    ('cobertura',   'Cobertura por Bairro',         tab_coverage),
-    ('vazios',      'Vazios Assistenciais',         tab_gaps),
-    ('educativo',   'Módulo Educativo (SUS)',       tab_education),
-    ('cenarios',    'Cenários',             tab_scenarios),
-    ('policlinica', 'Estudo de Caso - Policlínica', tab_case_study),
+    ('overview', 'Visão Geral',            tab_overview),
+    ('mapa',     'Mapa',                   tab_map),
+    ('rede',     'Análise da Rede',        tab_network),
+    ('lista',    'Lista de Estabelecimentos', tab_list),
 ]
 
 app.layout = html.Div([
