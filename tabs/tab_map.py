@@ -46,6 +46,8 @@ def make_map(cats, raio_km):
             f"{G.degree(r['Nome']) if G is not None else 0}<br>"
             + ("<span style='color:#e76f51'><b>Isolado neste raio</b></span><br>" if isolado else "")
             + f"<span style='color:#2d6a4f'>Grupo cromático:</span> {cor_idx if cor_idx is not None else 'N/A'}"
+            "<br><i style='font-size:11px;color:#6c757d'>Grupos iguais = sem conexão direta neste raio. "
+            "Não é ranking nem nota de qualidade.</i>"
             f"</div>"
         )
         folium.CircleMarker(
@@ -117,6 +119,12 @@ def layout():
                     ], style={'display': 'flex', 'alignItems': 'center', 'marginBottom': '6px'})
                     for cat, col in CAT_COLORS.items()
                 ]),
+                html.P(
+                    "As cores dos marcadores no mapa não seguem esta legenda de categorias: elas "
+                    "representam o grupo cromático do grafo no raio selecionado. Ver a nota abaixo do mapa.",
+                    style={'fontSize': '0.72rem', 'color': C['txt2'], 'fontStyle': 'italic',
+                           'marginTop': '10px', 'lineHeight': '1.5'},
+                ),
             ], style={'width': '270px', 'flexShrink': '0', 'backgroundColor': C['white'],
                       'border': f"1px solid {C['line']}", 'borderRadius': '14px 0 0 14px',
                       'padding': '20px', 'overflowY': 'auto'},
@@ -130,12 +138,35 @@ def layout():
                       'backgroundColor': C['white']}),
         ], style={'display': 'flex', 'marginBottom': '12px', 'height': '620px',
                   'boxShadow': '0 8px 24px rgba(27,67,50,0.06)', 'borderRadius': '14px'}),
-        html.P(
-            "Marcadores com borda vermelha destacada indicam estabelecimentos isolados no raio "
-            "selecionado (sem nenhum vizinho ≤ raio). A cor de preenchimento reflete o grupo "
-            "cromático (coloração greedy) do grafo naquele raio — não é uma escala de qualidade.",
-            style={'color': C['txt2'], 'fontSize': '0.82rem', 'fontStyle': 'italic'},
-        ),
+        html.Div([
+            html.P(
+                "Marcadores com borda vermelha destacada indicam estabelecimentos isolados no raio "
+                "selecionado (sem nenhum vizinho ≤ raio). A cor de preenchimento reflete o grupo cromático "
+                "(coloração greedy) do grafo naquele raio: cores distintas apenas indicam estabelecimentos "
+                "próximos o bastante para serem conectados; cores iguais indicam ausência de conexão "
+                "direta. Não é escala de qualidade nem de prioridade.",
+                style={'color': C['txt2'], 'fontSize': '0.82rem', 'fontStyle': 'italic',
+                       'marginBottom': '10px'},
+            ),
+            html.Div([
+                html.Strong("Como ler a coloração. ", style={'color': C['primary']}),
+                "Lida junto com as métricas da aba ",
+                html.Em("Análise da Rede"),
+                ", a coloração ajuda a distinguir dois padrões espaciais opostos: ",
+                html.Strong("concentração"),
+                " — poucas regiões do mapa reúnem muitas cores diferentes, com um grande agrupamento conexo "
+                "único (serviços aglomerados, tipicamente no núcleo urbano) — e ",
+                html.Strong("fragmentação"),
+                " — poucas cores, muitos agrupamentos separados e vários marcadores isolados (cobertura "
+                "dispersa). A coloração ",
+                html.Strong("não"),
+                " mede qualidade clínica, resolutividade, tempo de espera nem estrutura das equipes: é uma "
+                "leitura exclusivamente geográfico-estrutural, ponto de partida para estudos "
+                "complementares, não para decisões de obras ou serviços.",
+            ], style={'color': C['txt2'], 'fontSize': '0.82rem', 'lineHeight': '1.65',
+                      'background': '#f5faf7', 'border': f"1px solid {C['line']}", 'borderRadius': '10px',
+                      'padding': '12px 14px', 'borderLeft': f"4px solid {C['accent']}"}),
+        ]),
     ], style={'padding': '20px 40px', 'maxWidth': '1500px', 'margin': '0 auto'})
 
 
