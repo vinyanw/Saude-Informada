@@ -75,7 +75,15 @@ print(f"Número cromático (com limiar {THRESHOLD_KM}km): {chromatic_number}")
 print(f"Nós isolados: {len(list(nx.isolates(G)))}")
 
 # ====================== 3. MAPA INTERATIVO COM CAMADAS POR CATEGORIA ======================
-m = folium.Map(location=[-4.865, -43.36], zoom_start=13, tiles="CartoDB positron")
+# Esri "World Light Gray": basemap claro sem marca d'água nem chave de API
+# (o endpoint gratuito da CARTO passou a carimbar "API KEY REQUIRED" nas tiles).
+_ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services"
+_ESRI_ATTR = "Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors"
+m = folium.Map(location=[-4.865, -43.36], zoom_start=13, tiles=None)
+folium.TileLayer(f"{_ESRI}/Canvas/World_Light_Gray_Base/MapServer/tile/{{z}}/{{y}}/{{x}}",
+                 attr=_ESRI_ATTR, name="Mapa base (claro)", control=False).add_to(m)
+folium.TileLayer(f"{_ESRI}/Canvas/World_Light_Gray_Reference/MapServer/tile/{{z}}/{{y}}/{{x}}",
+                 attr=_ESRI_ATTR, name="Rótulos", overlay=True, control=False).add_to(m)
 
 # Cores por categoria
 category_colors = {

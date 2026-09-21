@@ -14,9 +14,23 @@ from graph_utils import build_graph, colorir_greedy
 
 ALL_CATS = sorted(df_all['Categoria'].unique())
 
+# Basemap claro sem marca d'água nem chave de API. A CARTO passou a exigir
+# API key no endpoint gratuito (tiles saem carimbadas com "API KEY REQUIRED"),
+# então usamos o Esri "World Light Gray": base + rótulos em camadas separadas.
+ESRI_GRAY_BASE = ("https://server.arcgisonline.com/ArcGIS/rest/services/"
+                  "Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}")
+ESRI_GRAY_LABELS = ("https://server.arcgisonline.com/ArcGIS/rest/services/"
+                    "Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}")
+ESRI_ATTR = ("Tiles &copy; Esri &mdash; Esri, HERE, Garmin, "
+             "&copy; OpenStreetMap contributors")
+
 
 def make_map(cats, raio_km):
-    m = folium.Map(location=list(MAP_CENTER), zoom_start=13, tiles="CartoDB positron")
+    m = folium.Map(location=list(MAP_CENTER), zoom_start=13, tiles=None)
+    folium.TileLayer(ESRI_GRAY_BASE, attr=ESRI_ATTR,
+                     name='Mapa base (claro)', control=False).add_to(m)
+    folium.TileLayer(ESRI_GRAY_LABELS, attr=ESRI_ATTR, name='Rótulos',
+                     overlay=True, control=False).add_to(m)
     data = df_geo[df_geo['Categoria'].isin(cats)] if cats else df_geo.iloc[0:0]
 
     G = build_graph(data, raio_km) if len(data) >= 2 else None
